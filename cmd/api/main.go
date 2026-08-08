@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -10,9 +10,12 @@ import (
 
 	"github.com/ivanbatistao/recommendation-service/configs"
 	httpgin "github.com/ivanbatistao/recommendation-service/internal/infrastructure/http/gin"
+	"github.com/ivanbatistao/recommendation-service/internal/infrastructure/logger"
 )
 
 func main() {
+	log := logger.New()
+
 	config := configs.Load()
 
 	server := httpgin.NewServer(config.Port)
@@ -23,7 +26,10 @@ func main() {
 		serverErrors <- server.Start()
 	}()
 
-	log.Printf("server running on :%s", config.Port)
+	log.Info(
+		"server running",
+		slog.String("port", config.Port),
+	)
 
 	shutdownSignal := make(chan os.Signal, 1)
 
@@ -35,10 +41,16 @@ func main() {
 
 	select {
 	case err := <-serverErrors:
-		log.Fatalf("server error: %v", err)
+		log.Error(
+			"server error",
+			slog.String("error", err.Error()),
+		)
 
 	case signal := <-shutdownSignal:
-		log.Printf("shutdown signal received: %s", signal)
+		log.Info(
+			"shutdown signal received",
+			slog.String("signal", signal.String()),
+		)
 	}
 
 	ctx, cancel := context.WithTimeout(
@@ -48,8 +60,13 @@ func main() {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("server shutdown error: %v", err)
+		log.Error(
+			"server shutdown error",
+			slog.String("error", err.Error()),
+		)
+
+		os.Exit(1)
 	}
 
-	log.Println("server stopped")
+	log.Info("server stopped")
 }
