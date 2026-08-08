@@ -11,7 +11,18 @@ SK = Timestamp
 ```
 USER#15
 2026-08-06T09:15
-ProductViewed
+{
+  "eventId": "...",
+  "eventType": "product_viewed",
+  "productId": "P101",
+  "productCategory": "electronics",
+  "productBrand": "Samsung",
+  "metadata": {
+    "device": "mobile",
+    "country": "CO"
+  },
+  "occurredAt": "2026-08-06T09:15:00Z"
+}
 ```
 
 ## Recommendations Table
@@ -22,9 +33,18 @@ ProductViewed
 {
   "userId": "15",
   "products": [
-    "P10",
-    "P50",
-    "P80"
+    {
+      "productId": "P10",
+      "score": 0.95
+    },
+    {
+      "productId": "P50",
+      "score": 0.82
+    },
+    {
+      "productId": "P80",
+      "score": 0.78
+    }
   ],
   "updatedAt": "..."
 }

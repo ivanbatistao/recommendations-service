@@ -1,23 +1,25 @@
-Domain
+# Domain
 This is where we start discovering entities.
 
-User
+## User
 - ID
 
-Product
+## Product
 - ID
 - Category
 - Brand
 
-InteractionEvent
+## InteractionEvent
 - ID
 - EventType
 - UserID
 - ProductID
+- ProductCategory
+- ProductBrand
 - MetaData
 - Timestamp
 
-Recommendation
+## Recommendation
 - UserID
 - Products
 - UpdatedAt
