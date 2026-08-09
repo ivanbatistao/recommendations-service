@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ivanbatistao/recommendation-service/internal/domain/recommendation"
+	"github.com/ivanbatistao/recommendations-service/internal/domain/recommendation"
 )
 
 type fakeRepository struct {
