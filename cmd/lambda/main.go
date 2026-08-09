@@ -4,83 +4,31 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
-	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	awsdynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/ivanbatistao/recommendations-service/configs"
 	"github.com/ivanbatistao/recommendations-service/internal/application/commands"
 	"github.com/ivanbatistao/recommendations-service/internal/application/dto"
 	"github.com/ivanbatistao/recommendations-service/internal/application/queries"
 	"github.com/ivanbatistao/recommendations-service/internal/domain/event"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/logger"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/persistence/dynamodb"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/persistence/memory"
-	"github.com/ivanbatistao/recommendations-service/internal/domain/recommendation"
+	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/composition"
 )
 
 type LambdaHandler struct {
-	getRecommendationsHandler    *queries.GetRecommendationsHandler
-	processEventHandler         *commands.ProcessEventHandler
-	generateRecommendationsHandler *commands.GenerateRecommendationsHandler
-	logger                       *slog.Logger
+	*composition.Application
 }
 
 func NewLambdaHandler() *LambdaHandler {
-	log := logger.New()
 	config := configs.Load()
 
-	// Choose repository based on environment
-	var repository recommendation.Repository
-
-	if config.UseDynamoDB {
-		// Use DynamoDB (AWS Lambda environment)
-		var client interface{}
-		var err error
-
-		if config.DynamoDBEndpoint != "" {
-			// Local DynamoDB (for testing)
-			client, err = dynamodb.NewLocalDynamoDBClient(
-				context.Background(),
-				config.DynamoDBEndpoint,
-			)
-		} else {
-			// AWS DynamoDB
-			client, err = dynamodb.NewDynamoDBClient(
-				context.Background(),
-				config.AWSRegion,
-			)
-		}
-
-		if err != nil {
-			log.Error(
-				"failed to initialize DynamoDB client",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
-
-		dynamoDBClient := client.(*awsdynamodb.Client)
-		repository = dynamodb.NewDynamoDBRepository(dynamoDBClient, config.DynamoDBTable)
-		log.Info("using DynamoDB repository")
-	} else {
-		// Use memory repository (for testing)
-		repository = memory.NewMemoryRepository()
-		log.Info("using memory repository")
+	app, err := composition.NewApplication(config)
+	if err != nil {
+		panic(err)
 	}
 
-	service := recommendation.NewService(repository)
-
-	getRecommendationsHandler := queries.NewGetRecommendationsHandler(service)
-	processEventHandler := commands.NewProcessEventHandler(service)
-	generateRecommendationsHandler := commands.NewGenerateRecommendationsHandler(service)
-
 	return &LambdaHandler{
-		getRecommendationsHandler:    getRecommendationsHandler,
-		processEventHandler:         processEventHandler,
-		generateRecommendationsHandler: generateRecommendationsHandler,
-		logger:                       log,
+		Application: app,
 	}
 }
 
@@ -88,7 +36,7 @@ func (h *LambdaHandler) HandleRequest(
 	ctx context.Context,
 	req events.APIGatewayProxyRequest,
 ) (events.APIGatewayProxyResponse, error) {
-	h.logger.Info(
+	h.Logger.Info(
 		"lambda request",
 		slog.String("path", req.Path),
 		slog.String("method", req.HTTPMethod),
@@ -156,7 +104,7 @@ func (h *LambdaHandler) handleGetRecommendations(
 		}, nil
 	}
 
-	result, err := h.getRecommendationsHandler.Execute(
+	result, err := h.GetRecommendationsHandler.Execute(
 		ctx,
 		queries.GetRecommendationsQuery{
 			UserID: userID,
@@ -164,7 +112,7 @@ func (h *LambdaHandler) handleGetRecommendations(
 	)
 
 	if err != nil {
-		h.logger.Error(
+		h.Logger.Error(
 			"failed to get recommendations",
 			slog.String("error", err.Error()),
 		)
@@ -217,7 +165,7 @@ func (h *LambdaHandler) handleProcessEvent(
 		}, nil
 	}
 
-	err = h.processEventHandler.Execute(
+	err = h.ProcessEventHandler.Execute(
 		ctx,
 		commands.ProcessEventCommand{
 			Event: event,
@@ -225,7 +173,7 @@ func (h *LambdaHandler) handleProcessEvent(
 	)
 
 	if err != nil {
-		h.logger.Error(
+		h.Logger.Error(
 			"failed to process event",
 			slog.String("error", err.Error()),
 		)
@@ -282,7 +230,7 @@ func (h *LambdaHandler) handleGenerateRecommendations(
 		eventList[i] = e
 	}
 
-	result, err := h.generateRecommendationsHandler.Execute(
+	result, err := h.GenerateRecommendationsHandler.Execute(
 		ctx,
 		commands.GenerateRecommendationsCommand{
 			UserID: request.UserID,
@@ -292,7 +240,7 @@ func (h *LambdaHandler) handleGenerateRecommendations(
 	)
 
 	if err != nil {
-		h.logger.Error(
+		h.Logger.Error(
 			"failed to generate recommendations",
 			slog.String("error", err.Error()),
 		)

@@ -8,77 +8,26 @@ import (
 	"syscall"
 	"time"
 
-	awsdynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/ivanbatistao/recommendations-service/configs"
-	"github.com/ivanbatistao/recommendations-service/internal/application/commands"
-	"github.com/ivanbatistao/recommendations-service/internal/application/queries"
 	httpgin "github.com/ivanbatistao/recommendations-service/internal/infrastructure/http/gin"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/logger"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/persistence/dynamodb"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/persistence/memory"
-	"github.com/ivanbatistao/recommendations-service/internal/domain/recommendation"
+	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/composition"
 )
 
 func main() {
-	log := logger.New()
-
 	config := configs.Load()
 
-	// Choose repository based on environment
-	var repository recommendation.Repository
-
-	if config.UseDynamoDB {
-		// Use DynamoDB (production or local development with MiniStack)
-		var client *awsdynamodb.Client
-		var err error
-
-		if config.DynamoDBEndpoint != "" {
-			// Local DynamoDB (MiniStack or DynamoDB Local)
-			client, err = dynamodb.NewLocalDynamoDBClient(
-				context.Background(),
-				config.DynamoDBEndpoint,
-			)
-		} else {
-			// AWS DynamoDB
-			client, err = dynamodb.NewDynamoDBClient(
-				context.Background(),
-				config.AWSRegion,
-			)
-		}
-
-		if err != nil {
-			log.Error(
-				"failed to initialize DynamoDB client",
-				slog.String("error", err.Error()),
-			)
-			os.Exit(1)
-		}
-
-		repository = dynamodb.NewDynamoDBRepository(client, config.DynamoDBTable)
-		log.Info("using DynamoDB repository")
-	} else {
-		// Use memory repository (default for simple testing)
-		repository = memory.NewMemoryRepository()
-		log.Info("using memory repository")
+	app, err := composition.NewApplication(config)
+	if err != nil {
+		os.Exit(1)
 	}
 
-	service := recommendation.NewService(repository)
-
-	getRecommendationsHandler := queries.NewGetRecommendationsHandler(service)
-	processEventHandler := commands.NewProcessEventHandler(service)
-	generateRecommendationsHandler := commands.NewGenerateRecommendationsHandler(service)
-
 	handler := httpgin.NewHandler(
-		getRecommendationsHandler,
-		processEventHandler,
-		generateRecommendationsHandler,
+		app.GetRecommendationsHandler,
+		app.ProcessEventHandler,
+		app.GenerateRecommendationsHandler,
 	)
 
-	log.Info("handlers created")
-
 	router := httpgin.NewRouter(handler)
-
-	log.Info("router created")
 
 	server := httpgin.NewServer(config.Port, router)
 
@@ -88,7 +37,7 @@ func main() {
 		serverErrors <- server.Start()
 	}()
 
-	log.Info(
+	app.Logger.Info(
 		"server running",
 		slog.String("port", config.Port),
 	)
@@ -103,13 +52,13 @@ func main() {
 
 	select {
 	case err := <-serverErrors:
-		log.Error(
+		app.Logger.Error(
 			"server error",
 			slog.String("error", err.Error()),
 		)
 
 	case signal := <-shutdownSignal:
-		log.Info(
+		app.Logger.Info(
 			"shutdown signal received",
 			slog.String("signal", signal.String()),
 		)
@@ -122,7 +71,7 @@ func main() {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Error(
+		app.Logger.Error(
 			"server shutdown error",
 			slog.String("error", err.Error()),
 		)
@@ -130,5 +79,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("server stopped")
+	app.Shutdown()
+	app.Logger.Info("server stopped")
 }
