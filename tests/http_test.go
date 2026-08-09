@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	httpgin "github.com/ivanbatistao/recommendation-service/internal/infrastructure/http/gin"
+	httpgin "github.com/ivanbatistao/recommendations-service/internal/infrastructure/http/gin"
 )
 
 func TestHealth(t *testing.T) {

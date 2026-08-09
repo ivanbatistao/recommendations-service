@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ivanbatistao/recommendation-service/configs"
-	httpgin "github.com/ivanbatistao/recommendation-service/internal/infrastructure/http/gin"
-	"github.com/ivanbatistao/recommendation-service/internal/infrastructure/logger"
+	"github.com/ivanbatistao/recommendations-service/configs"
+	httpgin "github.com/ivanbatistao/recommendations-service/internal/infrastructure/http/gin"
+	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/logger"
 )
 
 func main() {
