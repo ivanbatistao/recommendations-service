@@ -1,4 +1,4 @@
-module github.com/ivanbatistao/recommendation-service
+module github.com/ivanbatistao/recommendations-service
 
 go 1.26.5
 
