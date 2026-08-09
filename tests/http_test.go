@@ -79,4 +79,3 @@ func TestHealthWithRequestID(t *testing.T) {
 		)
 	}
 }
-
