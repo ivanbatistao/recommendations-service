@@ -1,8 +1,6 @@
 package recommendation
 
-import (
-	"sort"
-)
+import "sort"
 
 func Rank(
 	userID string,
@@ -29,6 +27,11 @@ func Rank(
 	sort.Slice(
 		recommendations,
 		func(i, j int) bool {
+			if recommendations[i].Score == recommendations[j].Score {
+				return recommendations[i].ProductID <
+					recommendations[j].ProductID
+			}
+
 			return recommendations[i].Score >
 				recommendations[j].Score
 		},

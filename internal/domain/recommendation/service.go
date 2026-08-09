@@ -1,6 +1,10 @@
 package recommendation
 
-import "context"
+import (
+	"context"
+
+	"github.com/ivanbatistao/recommendations-service/internal/domain/event"
+)
 
 type Service struct {
 	repository Repository
@@ -17,4 +21,14 @@ func (s *Service) GetByUserID(
 	userID string,
 ) ([]Recommendation, error) {
 	return s.repository.GetByUserID(ctx, userID)
+}
+
+func (s *Service) GenerateRecommendations(
+	userID string,
+	events []event.Event,
+	limit int,
+) []Recommendation {
+	interest := CalculateInterest(userID, events)
+
+	return Rank(userID, interest, limit)
 }

@@ -1,74 +1,73 @@
 package recommendation_test
 
 import (
-	"context"
 	"testing"
 
+	"github.com/ivanbatistao/recommendations-service/internal/domain/event"
 	"github.com/ivanbatistao/recommendations-service/internal/domain/recommendation"
 )
 
-type fakeRepository struct {
-	recommendations []recommendation.Recommendation
-}
-
-func (f *fakeRepository) GetByUserID(
-	_ context.Context,
-	_ string,
-) ([]recommendation.Recommendation, error) {
-	return f.recommendations, nil
-}
-
-func (f *fakeRepository) Save(
-	_ context.Context,
-	_ recommendation.Recommendation,
-) error {
-	return nil
-}
-
-func TestServiceGetByUserID(t *testing.T) {
-	expected := []recommendation.Recommendation{
+func TestServiceGenerateRecommendations(t *testing.T) {
+	events := []event.Event{
 		{
-			UserID:    "123",
+			EventID:   "event-1",
+			EventType: event.ProductViewed,
+			UserID:    "user-1",
+			ProductID: "P10",
+		},
+		{
+			EventID:   "event-2",
+			EventType: event.ProductAddedCart,
+			UserID:    "user-1",
 			ProductID: "P20",
-			Score:     0.95,
 		},
 		{
-			UserID:    "123",
-			ProductID: "P40",
-			Score:     0.82,
+			EventID:   "event-3",
+			EventType: event.ProductPurchased,
+			UserID:    "user-1",
+			ProductID: "P20",
+		},
+		{
+			EventID:   "event-4",
+			EventType: event.ProductViewed,
+			UserID:    "user-1",
+			ProductID: "P30",
 		},
 	}
 
-	repository := &fakeRepository{
-		recommendations: expected,
-	}
+	service := recommendation.NewService(nil)
 
-	service := recommendation.NewService(repository)
-
-	result, err := service.GetByUserID(
-		context.Background(),
-		"123",
+	result := service.GenerateRecommendations(
+		"user-1",
+		events,
+		2,
 	)
 
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if len(result) != len(expected) {
+	if len(result) != 2 {
 		t.Fatalf(
-			"expected %d recommendations, got %d",
-			len(expected),
+			"expected 2 recommendations, got %d",
 			len(result),
 		)
 	}
 
-	for i := range expected {
-		if result[i] != expected[i] {
-			t.Fatalf(
-				"expected recommendation %+v, got %+v",
-				expected[i],
-				result[i],
-			)
-		}
+	if result[0].ProductID != "P20" {
+		t.Fatalf(
+			"expected first recommendation P20, got %s",
+			result[0].ProductID,
+		)
+	}
+
+	if result[0].Score != 8 {
+		t.Fatalf(
+			"expected P20 score 8, got %.2f",
+			result[0].Score,
+		)
+	}
+
+	if result[1].ProductID != "P10" {
+		t.Fatalf(
+			"expected second recommendation P10, got %s",
+			result[1].ProductID,
+		)
 	}
 }
