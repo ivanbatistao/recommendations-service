@@ -74,7 +74,11 @@ func main() {
 		generateRecommendationsHandler,
 	)
 
+	log.Info("handlers created")
+
 	router := httpgin.NewRouter(handler)
+
+	log.Info("router created")
 
 	server := httpgin.NewServer(config.Port, router)
 
