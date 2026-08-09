@@ -8,9 +8,8 @@ set -e
 TEST_TYPE=${1:-"api-load-test"}
 BASE_URL=${2:-"http://localhost:8080"}
 
-echo "🚀 Running k6 load tests..."
-echo "Test: $TEST_TYPE"
-echo "Base URL: $BASE_URL"
+echo "🚀 Running k6 load test: $TEST_TYPE"
+echo "🌐 Target URL: $BASE_URL"
 echo ""
 
 # Check if k6 is installed
@@ -20,20 +19,20 @@ if ! command -v k6 &> /dev/null; then
 fi
 
 # Check if the application is running
-echo "🔍 Checking if application is running..."
+echo "🔍 Checking if application is running at $BASE_URL..."
 if ! curl -s "$BASE_URL/health" > /dev/null; then
     echo "❌ Application is not running at $BASE_URL"
     echo "Start it with: docker-compose up"
     exit 1
 fi
 
-echo "✅ Application is running"
+echo "✅ Application is running and healthy"
 echo ""
 
 # Run the test
-echo "📊 Starting load test..."
+echo "📊 Starting $TEST_TYPE load test..."
 export BASE_URL=$BASE_URL
 k6 run "loadtests/$TEST_TYPE.js"
 
 echo ""
-echo "✅ Load test completed!"
+echo "✅ $TEST_TYPE load test completed!"
