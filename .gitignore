@@ -1,0 +1,28 @@
+# Binaries
+/bin/
+/build/
+/dist/
+
+# Go
+*.test
+*.out
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage.out
+coverage.html
+
+# Temporary
+tmp/
