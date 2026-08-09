@@ -9,8 +9,12 @@ import (
 	"time"
 
 	"github.com/ivanbatistao/recommendations-service/configs"
+	"github.com/ivanbatistao/recommendations-service/internal/application/commands"
+	"github.com/ivanbatistao/recommendations-service/internal/application/queries"
 	httpgin "github.com/ivanbatistao/recommendations-service/internal/infrastructure/http/gin"
 	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/logger"
+	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/persistence/memory"
+	"github.com/ivanbatistao/recommendations-service/internal/domain/recommendation"
 )
 
 func main() {
@@ -18,7 +22,22 @@ func main() {
 
 	config := configs.Load()
 
-	server := httpgin.NewServer(config.Port)
+	repository := memory.NewMemoryRepository()
+	service := recommendation.NewService(repository)
+
+	getRecommendationsHandler := queries.NewGetRecommendationsHandler(service)
+	processEventHandler := commands.NewProcessEventHandler(service)
+	generateRecommendationsHandler := commands.NewGenerateRecommendationsHandler(service)
+
+	handler := httpgin.NewHandler(
+		getRecommendationsHandler,
+		processEventHandler,
+		generateRecommendationsHandler,
+	)
+
+	router := httpgin.NewRouter(handler)
+
+	server := httpgin.NewServer(config.Port, router)
 
 	serverErrors := make(chan error, 1)
 

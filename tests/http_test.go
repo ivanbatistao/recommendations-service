@@ -9,7 +9,8 @@ import (
 )
 
 func TestHealth(t *testing.T) {
-	router := httpgin.NewRouter()
+	handler := httpgin.NewHandler(nil, nil, nil)
+	router := httpgin.NewRouter(handler)
 
 	req := httptest.NewRequest(
 		http.MethodGet,
@@ -47,7 +48,8 @@ func TestHealth(t *testing.T) {
 }
 
 func TestHealthWithRequestID(t *testing.T) {
-	router := httpgin.NewRouter()
+	handler := httpgin.NewHandler(nil, nil, nil)
+	router := httpgin.NewRouter(handler)
 
 	req := httptest.NewRequest(
 		http.MethodGet,

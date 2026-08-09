@@ -4,7 +4,7 @@ import (
 	ginframework "github.com/gin-gonic/gin"
 )
 
-func NewRouter() *ginframework.Engine {
+func NewRouter(handler *Handler) *ginframework.Engine {
 	router := ginframework.New()
 
 	router.Use(ginframework.Logger())
@@ -12,6 +12,10 @@ func NewRouter() *ginframework.Engine {
 	router.Use(RequestID())
 
 	router.GET("/health", health)
+
+	router.GET("/recommendations/:userId", handler.GetRecommendations)
+	router.POST("/events", handler.ProcessEvent)
+	router.POST("/recommendations/generate", handler.GenerateRecommendations)
 
 	return router
 }

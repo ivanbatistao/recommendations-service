@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 	"net/http"
+
+	ginframework "github.com/gin-gonic/gin"
 )
 
 type Server struct {
 	httpServer *http.Server
 }
 
-func NewServer(port string) *Server {
-	router := NewRouter()
-
+func NewServer(port string, router *ginframework.Engine) *Server {
 	return &Server{
 		httpServer: &http.Server{
 			Addr:    ":" + port,
