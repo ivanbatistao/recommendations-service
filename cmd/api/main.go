@@ -8,11 +8,13 @@ import (
 	"syscall"
 	"time"
 
+	awsdynamodb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/ivanbatistao/recommendations-service/configs"
 	"github.com/ivanbatistao/recommendations-service/internal/application/commands"
 	"github.com/ivanbatistao/recommendations-service/internal/application/queries"
 	httpgin "github.com/ivanbatistao/recommendations-service/internal/infrastructure/http/gin"
 	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/logger"
+	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/persistence/dynamodb"
 	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/persistence/memory"
 	"github.com/ivanbatistao/recommendations-service/internal/domain/recommendation"
 )
@@ -22,7 +24,44 @@ func main() {
 
 	config := configs.Load()
 
-	repository := memory.NewMemoryRepository()
+	// Choose repository based on environment
+	var repository recommendation.Repository
+
+	if config.UseDynamoDB {
+		// Use DynamoDB (production or local development with MiniStack)
+		var client *awsdynamodb.Client
+		var err error
+
+		if config.DynamoDBEndpoint != "" {
+			// Local DynamoDB (MiniStack or DynamoDB Local)
+			client, err = dynamodb.NewLocalDynamoDBClient(
+				context.Background(),
+				config.DynamoDBEndpoint,
+			)
+		} else {
+			// AWS DynamoDB
+			client, err = dynamodb.NewDynamoDBClient(
+				context.Background(),
+				config.AWSRegion,
+			)
+		}
+
+		if err != nil {
+			log.Error(
+				"failed to initialize DynamoDB client",
+				slog.String("error", err.Error()),
+			)
+			os.Exit(1)
+		}
+
+		repository = dynamodb.NewDynamoDBRepository(client, config.DynamoDBTable)
+		log.Info("using DynamoDB repository")
+	} else {
+		// Use memory repository (default for simple testing)
+		repository = memory.NewMemoryRepository()
+		log.Info("using memory repository")
+	}
+
 	service := recommendation.NewService(repository)
 
 	getRecommendationsHandler := queries.NewGetRecommendationsHandler(service)

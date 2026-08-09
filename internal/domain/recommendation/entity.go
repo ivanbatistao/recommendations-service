@@ -1,7 +1,7 @@
 package recommendation
 
 type Recommendation struct {
-	UserID    string
-	ProductID string
-	Score     float64
+	UserID    string `dynamodbav:"UserID"`
+	ProductID string `dynamodbav:"ProductID"`
+	Score     float64 `dynamodbav:"Score"`
 }
