@@ -1,4 +1,21 @@
 services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - SERVICES=dynamodb,kinesis
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - "./localstack_data:/tmp/localstack/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
   recommendation-service:
     build:
       context: .
@@ -8,3 +25,11 @@ services:
     environment:
       PORT: "8080"
       GIN_MODE: "debug"
+      AWS_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+      DYNAMODB_ENDPOINT: "http://localstack:4566"
+      KINESIS_ENDPOINT: "http://localstack:4566"
+      USE_LOCAL_AWS: "true"
+    depends_on:
+      - localstack

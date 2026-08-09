@@ -11,6 +11,9 @@ type Config struct {
 	DynamoDBTable     string
 	DynamoDBEndpoint  string
 	AWSRegion         string
+	UseKinesis        bool
+	KinesisStreamName string
+	KinesisEndpoint   string
 }
 
 func Load() Config {
@@ -31,11 +34,22 @@ func Load() Config {
 		awsRegion = "us-east-1"
 	}
 
+	useKinesis, _ := strconv.ParseBool(os.Getenv("USE_KINESIS"))
+	kinesisStreamName := os.Getenv("KINESIS_STREAM_NAME")
+	if kinesisStreamName == "" {
+		kinesisStreamName = "recommendations-events"
+	}
+
+	kinesisEndpoint := os.Getenv("KINESIS_ENDPOINT")
+
 	return Config{
 		Port:              port,
 		UseDynamoDB:       useDynamoDB,
 		DynamoDBTable:     dynamoDBTable,
 		DynamoDBEndpoint:  dynamoDBEndpoint,
 		AWSRegion:         awsRegion,
+		UseKinesis:        useKinesis,
+		KinesisStreamName: kinesisStreamName,
+		KinesisEndpoint:   kinesisEndpoint,
 	}
 }
