@@ -2,68 +2,68 @@
 
 ## Overview
 
-Este proyecto utiliza **LocalStack** para simular servicios de AWS localmente, permitiendo desarrollo y testing sin necesidad de una cuenta AWS real.
+This project uses **LocalStack** to simulate AWS services locally, enabling development and testing without a real AWS account.
 
-## Servicios Simulados
+## Simulated Services
 
-- **DynamoDB**: Base de datos NoSQL para almacenar recomendaciones
-- **Kinesis**: Stream de eventos para procesamiento en tiempo real
+- **DynamoDB**: NoSQL database for storing recommendations
+- **Kinesis**: Event stream for real-time processing
 
-## Requisitos Previos
+## Prerequisites
 
-- Docker y Docker Compose instalados
-- AWS CLI instalado (opcional, para scripts de inicialización)
+- Docker and Docker Compose installed
+- AWS CLI installed (optional, for initialization scripts)
 
-## Inicio Rápido
+## Quick Start
 
-### 1. Iniciar LocalStack
+### 1. Start LocalStack
 
 ```bash
 docker-compose up -d localstack
 ```
 
-Esto iniciará LocalStack en `http://localhost:4566` con DynamoDB y Kinesis habilitados.
+This will start LocalStack at `http://localhost:4566` with DynamoDB and Kinesis enabled.
 
-### 2. Inicializar Recursos AWS
+### 2. Initialize AWS Resources
 
-Ejecutar el script de inicialización para crear la tabla DynamoDB y el stream Kinesis:
+Run the initialization script to create the DynamoDB table and Kinesis stream:
 
 ```bash
 ./scripts/init-localstack.sh
 ```
 
-Esto creará:
-- Tabla DynamoDB: `Recommendations` (partition key: `UserID`)
-- Stream Kinesis: `recommendations-events` (1 shard)
+This will create:
+- DynamoDB table: `Recommendations` (partition key: `UserID`)
+- Kinesis stream: `recommendations-events` (1 shard)
 
-### 3. Verificar Funcionamiento
+### 3. Verify Functionality
 
 ```bash
 ./scripts/test-localstack.sh
 ```
 
-Esto ejecutará tests de conectividad con ambos servicios.
+This will execute connectivity tests with both services.
 
-### 4. Iniciar la Aplicación
+### 4. Start the Application
 
 ```bash
 docker-compose up recommendation-service
 ```
 
-La aplicación se conectará automáticamente a LocalStack usando las variables de entorno configuradas.
+The application will automatically connect to LocalStack using the configured environment variables.
 
-## Configuración
+## Configuration
 
-### Variables de Entorno
+### Environment Variables
 
-| Variable | Valor Default | Descripción |
+| Variable | Default Value | Description |
 |----------|---------------|-------------|
-| `AWS_REGION` | `us-east-1` | Región AWS simulada |
-| `AWS_ACCESS_KEY_ID` | `test` | Credencial falsa para LocalStack |
-| `AWS_SECRET_ACCESS_KEY` | `test` | Credencial falsa para LocalStack |
-| `DYNAMODB_ENDPOINT` | `http://localstack:4566` | Endpoint DynamoDB local |
-| `KINESIS_ENDPOINT` | `http://localstack:4566` | Endpoint Kinesis local |
-| `USE_LOCAL_AWS` | `true` | Usar servicios AWS locales |
+| `AWS_REGION` | `us-east-1` | Simulated AWS region |
+| `AWS_ACCESS_KEY_ID` | `test` | Fake credential for LocalStack |
+| `AWS_SECRET_ACCESS_KEY` | `test` | Fake credential for LocalStack |
+| `DYNAMODB_ENDPOINT` | `http://localstack:4566` | Local DynamoDB endpoint |
+| `KINESIS_ENDPOINT` | `http://localstack:4566` | Local Kinesis endpoint |
+| `USE_LOCAL_AWS` | `true` | Use local AWS services |
 
 ### Docker Compose
 
@@ -79,21 +79,21 @@ localstack:
     - AWS_SECRET_ACCESS_KEY=test
 ```
 
-## Uso
+## Usage
 
-### Desarrollo Local
+### Local Development
 
-La aplicación detecta automáticamente cuando usar LocalStack basándose en las variables de entorno:
+The application automatically detects when to use LocalStack based on environment variables:
 
 ```go
 if config.DynamoDBEndpoint != "" {
-    // Usar DynamoDB local (LocalStack)
+    // Use local DynamoDB (LocalStack)
     client, err = dynamodb.NewLocalDynamoDBClient(
         context.Background(),
         config.DynamoDBEndpoint,
     )
 } else {
-    // Usar AWS DynamoDB real
+    // Use real AWS DynamoDB
     client, err = dynamodb.NewDynamoDBClient(
         context.Background(),
         config.AWSRegion,
@@ -101,93 +101,93 @@ if config.DynamoDBEndpoint != "" {
 }
 ```
 
-### Event Generator con LocalStack
+### Event Generator with LocalStack
 
-Para usar el Event Generator con Kinesis local:
+To use the Event Generator with local Kinesis:
 
 ```bash
 ./event-generator --kinesis --stream-name recommendations-events --endpoint http://localhost:4566
 ```
 
-## Scripts Disponibles
+## Available Scripts
 
 ### `scripts/init-localstack.sh`
-Inicializa recursos AWS en LocalStack:
-- Crea tabla DynamoDB
-- Crea stream Kinesis
-- Espera que los recursos estén activos
+Initializes AWS resources in LocalStack:
+- Creates DynamoDB table
+- Creates Kinesis stream
+- Waits for resources to be active
 
 ### `scripts/test-localstack.sh`
-Testea conectividad con LocalStack:
-- Lista tablas DynamoDB
-- Describe tabla Recommendations
-- Lista streams Kinesis
-- Escribe/lee datos de prueba
+Tests connectivity with LocalStack:
+- Lists DynamoDB tables
+- Describes Recommendations table
+- Lists Kinesis streams
+- Writes/reads test data
 
 ## Troubleshooting
 
-### LocalStack no inicia
+### LocalStack won't start
 ```bash
-# Verificar logs
+# Check logs
 docker-compose logs localstack
 
-# Reiniciar
+# Restart
 docker-compose restart localstack
 ```
 
-### Tabla o stream no existen
+### Table or stream don't exist
 ```bash
-# Re-inicializar recursos
+# Re-initialize resources
 ./scripts/init-localstack.sh
 ```
 
-### Error de conexión
+### Connection error
 ```bash
-# Verificar que LocalStack está corriendo
+# Verify LocalStack is running
 curl http://localhost:4566
 
-# Verificar que el puerto 4566 no está en uso
+# Check if port 4566 is in use
 lsof -i :4566
 ```
 
-### Permisos AWS
-LocalStack ignora las credenciales reales, pero requiere valores válidos:
+### AWS permissions
+LocalStack ignores real credentials but requires valid values:
 ```bash
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
 export AWS_DEFAULT_REGION=us-east-1
 ```
 
-## Datos Locales
+## Local Data
 
-Los datos de LocalStack se guardan en `./localstack_data/`:
+LocalStack data is saved in `./localstack_data/`:
 ```yaml
 volumes:
   - "./localstack_data:/tmp/localstack/data"
 ```
 
-Para limpiar datos:
+To clean data:
 ```bash
 rm -rf localstack_data/*
 docker-compose restart localstack
 ```
 
-## Limitaciones
+## Limitations
 
-LocalStack no es 100% compatible con AWS real. Limitaciones conocidas:
+LocalStack is not 100% compatible with real AWS. Known limitations:
 
-- Algunas características avanzadas de DynamoDB no están implementadas
-- Kinesis tiene algunas diferencias en comportamiento
-- No hay costos, pero tampoco garantías de disponibilidad
+- Some advanced DynamoDB features are not implemented
+- Kinesis has some behavioral differences
+- No costs, but also no availability guarantees
 
-## Próximos Pasos
+## Next Steps
 
-Una vez LocalStack está funcionando:
-1. ✅ Event Generator puede enviar eventos a Kinesis local
-2. ✅ La aplicación puede almacenar recomendaciones en DynamoDB local
-3. ✅ Ready para load testing con k6
+Once LocalStack is running:
+1. ✅ Event Generator can send events to local Kinesis
+2. ✅ Application can store recommendations in local DynamoDB
+3. ✅ Ready for load testing with k6
 
-## Referencias
+## References
 
 - [LocalStack Documentation](https://docs.localstack.cloud/)
 - [DynamoDB Local](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html)

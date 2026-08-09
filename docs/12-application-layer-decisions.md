@@ -1,14 +1,14 @@
-# Application Layer - Decisiones de Implementación
+# Application Layer - Implementation Decisions
 
-## Módulo 3 — Application Layer
+## Module 3 — Application Layer
 
-### Objetivo
+### Objective
 
-Implementar los casos de uso de la aplicación orquestando el dominio sin depender de infraestructura concreta.
+Implement application use cases by orchestrating the domain without depending on concrete infrastructure.
 
-### Arquitectura
+### Architecture
 
-La capa de aplicación sigue el patrón CQRS (Command Query Responsibility Segregation):
+The application layer follows the CQRS (Command Query Responsibility Segregation) pattern:
 
 ```
 Commands (Write)
@@ -23,96 +23,96 @@ DTOs (Data Transfer Objects)
 └── EventDTO
 ```
 
-### Casos de Uso Implementados
+### Implemented Use Cases
 
 #### 1. Get Recommendations (Query)
-- **Ubicación**: `internal/application/queries/get_recommendations.go`
+- **Location**: `internal/application/queries/get_recommendations.go`
 - **Handler**: `GetRecommendationsHandler`
-- **Propósito**: Obtener recomendaciones existentes para un usuario
-- **Flujo**:
-  1. Recibe `GetRecommendationsQuery` con `UserID`
-  2. Delega a `recommendation.Service.GetByUserID`
-  3. Retorna slice de `Recommendation` (entidades del dominio)
+- **Purpose**: Get existing recommendations for a user
+- **Flow**:
+  1. Receives `GetRecommendationsQuery` with `UserID`
+  2. Delegates to `recommendation.Service.GetByUserID`
+  3. Returns slice of `Recommendation` (domain entities)
 
-**Decisiones**:
-- Query pattern para operaciones de lectura
-- No usa DTOs en el handler (retorna entidades del dominio)
-- La conversión a DTOs se hará en la capa HTTP
+**Decisions**:
+- Query pattern for read operations
+- Doesn't use DTOs in handler (returns domain entities)
+- DTO conversion will be done in HTTP layer
 
 #### 2. Process Event (Command)
-- **Ubicación**: `internal/application/commands/process_event.go`
+- **Location**: `internal/application/commands/process_event.go`
 - **Handler**: `ProcessEventHandler`
-- **Propósito**: Procesar un evento de interacción y actualizar recomendaciones
-- **Flujo**:
-  1. Recibe `ProcessEventCommand` con un `Event`
-  2. Delega a `recommendation.Service.ProcessEvent`
-  3. El servicio actualiza o crea recomendaciones vía Repository
+- **Purpose**: Process an interaction event and update recommendations
+- **Flow**:
+  1. Receives `ProcessEventCommand` with an `Event`
+  2. Delegates to `recommendation.Service.ProcessEvent`
+  3. Service updates or creates recommendations via Repository
 
-**Decisiones**:
-- Command pattern para operaciones de escritura
-- Usa entidades del dominio directamente
-- Validación se hace en el dominio
+**Decisions**:
+- Command pattern for write operations
+- Uses domain entities directly
+- Validation is done in the domain
 
 #### 3. Generate Recommendations (Command)
-- **Ubicación**: `internal/application/commands/generate_recommendations.go`
+- **Location**: `internal/application/commands/generate_recommendations.go`
 - **Handler**: `GenerateRecommendationsHandler`
-- **Propósito**: Generar recomendaciones desde un batch de eventos
-- **Flujo**:
-  1. Recibe `GenerateRecommendationsCommand` con `UserID`, `Events`, `Limit`
-  2. Delega a `recommendation.Service.GenerateRecommendations`
-  3. Retorna slice de `Recommendation` generado
+- **Purpose**: Generate recommendations from a batch of events
+- **Flow**:
+  1. Receives `GenerateRecommendationsCommand` with `UserID`, `Events`, `Limit`
+  2. Delegates to `recommendation.Service.GenerateRecommendations`
+  3. Returns generated slice of `Recommendation`
 
-**Decisiones**:
-- Command pattern aunque es de lectura (para consistencia)
-- Útil para procesamiento por lotes offline
-- No persiste resultados (solo cálculo en memoria)
+**Decisions**:
+- Command pattern even though it's a read operation (for consistency)
+- Useful for offline batch processing
+- Doesn't persist results (in-memory calculation only)
 
-### DTOs Implementados
+### Implemented DTOs
 
 #### 1. RecommendationDTO
-- **Ubicación**: `internal/application/dto/recommendation_dto.go`
-- **Propósito**: Transferir datos de recomendaciones entre capas
-- **Campos**:
+- **Location**: `internal/application/dto/recommendation_dto.go`
+- **Purpose**: Transfer recommendation data between layers
+- **Fields**:
   - `UserID`: string
   - `ProductID`: string
   - `Score`: float64
 
-**Funciones**:
-- `FromDomain`: Convierte entidad del dominio a DTO
-- `ToDomain`: Convierte DTO a entidad del dominio
-- `FromDomainSlice`: Convierte slice de entidades a slice de DTOs
+**Functions**:
+- `FromDomain`: Converts domain entity to DTO
+- `ToDomain`: Converts DTO to domain entity
+- `FromDomainSlice`: Converts entity slice to DTO slice
 
-**Decisiones**:
-- Campos idénticos a la entidad del dominio (por ahora)
-- Funciones de conversión para facilitar testing
-- Slice conversion para uso en HTTP responses
+**Decisions**:
+- Fields identical to domain entity (for now)
+- Conversion functions to facilitate testing
+- Slice conversion for HTTP response usage
 
 #### 2. EventDTO
-- **Ubicación**: `internal/application/dto/event_dto.go`
-- **Propósito**: Transferir datos de eventos entre capas
-- **Campos**:
+- **Location**: `internal/application/dto/event_dto.go`
+- **Purpose**: Transfer event data between layers
+- **Fields**:
   - `EventID`: string
-  - `EventType`: string (no enum para JSON)
+  - `EventType`: string (not enum for JSON)
   - `UserID`: string
   - `ProductID`: string
-  - `ProductCategory`: string (opcional)
-  - `ProductBrand`: string (opcional)
-  - `Metadata`: map[string]string (para JSON)
+  - `ProductCategory`: string (optional)
+  - `ProductBrand`: string (optional)
+  - `Metadata`: map[string]string (for JSON)
   - `OccurredAt`: string (ISO 8601)
 
-**Funciones**:
-- `FromEventDomain`: Convierte entidad del dominio a DTO
-- `ToEventDomain`: Convierte DTO a entidad del dominio con parsing de timestamp
+**Functions**:
+- `FromEventDomain`: Converts domain entity to DTO
+- `ToEventDomain`: Converts DTO to domain entity with timestamp parsing
 
-**Decisiones**:
-- `EventType` como string para serialización JSON
-- `Metadata` como map para flexibilidad
-- `OccurredAt` como string RFC3339 para transporte HTTP
-- Parsing de timestamp en `ToEventDomain` con manejo de errores
+**Decisions**:
+- `EventType` as string for JSON serialization
+- `Metadata` as map for flexibility
+- `OccurredAt` as RFC3339 string for HTTP transport
+- Timestamp parsing in `ToEventDomain` with error handling
 
-### Inyección de Dependencias
+### Dependency Injection
 
-Todos los handlers reciben el `recommendation.Service` en el constructor:
+All handlers receive the `recommendation.Service` in the constructor:
 
 ```go
 func NewGetRecommendationsHandler(service *recommendation.Service) *GetRecommendationsHandler
@@ -120,75 +120,75 @@ func NewProcessEventHandler(service *recommendation.Service) *ProcessEventHandle
 func NewGenerateRecommendationsHandler(service *recommendation.Service) *GenerateRecommendationsHandler
 ```
 
-**Decisiones**:
-- Constructor injection para testabilidad
-- No usa frameworks de DI (inyección manual en composition root)
-- Service es compartido entre handlers (singleton)
+**Decisions**:
+- Constructor injection for testability
+- No DI frameworks (manual injection in composition root)
+- Service is shared between handlers (singleton)
 
-### Manejo de Errores
+### Error Handling
 
-Los handlers propagan errores del dominio sin transformación:
+Handlers propagate domain errors without transformation:
 
 ```go
 func (h *Handler) Execute(ctx context.Context, cmd Command) (Result, error) {
-    // Delega al servicio del dominio
+    // Delegates to domain service
     return h.service.SomeMethod(ctx, cmd.Params)
 }
 ```
 
-**Decisiones**:
-- Errores del dominio fluyen sin wrapping
-- La capa HTTP manejará la conversión a status codes
-- `context.Context` se pasa para cancelación y timeouts
+**Decisions**:
+- Domain errors flow without wrapping
+- HTTP layer will handle conversion to status codes
+- `context.Context` is passed for cancellation and timeouts
 
-### Tests Implementados
+### Implemented Tests
 
 #### 1. GetRecommendations Tests
-- **Ubicación**: `internal/application/queries/get_recommendations_test.go`
+- **Location**: `internal/application/queries/get_recommendations_test.go`
 - **Coverage**:
-  - Caso exitoso con fake repository
-  - Verificación de resultados ordenados
+  - Success case with fake repository
+  - Verification of sorted results
 
 #### 2. ProcessEvent Tests
-- **Ubicación**: `internal/application/commands/process_event_test.go`
+- **Location**: `internal/application/commands/process_event_test.go`
 - **Coverage**:
-  - Actualización de recomendación existente
-  - Creación de nueva recomendación
-  - Ignorar eventos con tipo desconocido
-  - Mock repository para verificar llamadas
+  - Update existing recommendation
+  - Create new recommendation
+  - Ignore events with unknown type
+  - Mock repository to verify calls
 
 #### 3. GenerateRecommendations Tests
-- **Ubicación**: `internal/application/commands/generate_recommendations_test.go`
+- **Location**: `internal/application/commands/generate_recommendations_test.go`
 - **Coverage**:
-  - Caso exitoso con eventos de prueba
-  - Validación de userID vacío
-  - Validación de límite inválido
+  - Success case with test events
+  - Validation of empty userID
+  - Validation of invalid limit
 
 #### 4. DTO Tests
-- **Ubicación**: `internal/application/dto/recommendation_dto_test.go`
+- **Location**: `internal/application/dto/recommendation_dto_test.go`
 - **Coverage**:
-  - Conversión Domain → DTO
-  - Conversión DTO → Domain
-  - Conversión de slices
+  - Domain → DTO conversion
+  - DTO → Domain conversion
+  - Slice conversion
 
-### Validaciones Realizadas
+### Validations Performed
 
-- [x] `internal/application` no depende de Gin
-- [x] `internal/application` no depende de AWS SDK
-- [x] `internal/application` no depende de infraestructura concreta
-- [x] Todos los tests unitarios pasan
-- [x] Tests con race detector pasan
-- [x] Go vet no reporta errores
-- [x] Formateo con gofmt aplicado
+- [x] `internal/application` doesn't depend on Gin
+- [x] `internal/application` doesn't depend on AWS SDK
+- [x] `internal/application` doesn't depend on concrete infrastructure
+- [x] All unit tests pass
+- [x] Tests with race detector pass
+- [x] Go vet reports no errors
+- [x] Formatted with gofmt
 
-### Trade-offs Considerados
+### Trade-offs Considered
 
-1. **Commands vs Functions**: Se usó el patrón Command/Handler en lugar de funciones simples para consistencia CQRS y extensibilidad futura (middleware, logging, etc.).
+1. **Commands vs Functions**: Used Command/Handler pattern instead of simple functions for CQRS consistency and future extensibility (middleware, logging, etc.).
 
-2. **DTOs vs Domain Entities**: Los handlers de commands/queries retornan entidades del dominio, no DTOs. La conversión a DTOs se delega a la capa HTTP para mantener la aplicación agnóstica del protocolo.
+2. **DTOs vs Domain Entities**: Command/query handlers return domain entities, not DTOs. DTO conversion is delegated to HTTP layer to keep the application protocol-agnostic.
 
-3. **GenerateRecommendations como Command**: Aunque es una operación de lectura, se implementó como Command para consistencia con el caso de uso de procesamiento por lotes offline.
+3. **GenerateRecommendations as Command**: Although it's a read operation, implemented as Command for consistency with offline batch processing use case.
 
-### Estado del Módulo 3
+### Module 3 Status
 
-- [x] Cerrado
+- [x] Closed

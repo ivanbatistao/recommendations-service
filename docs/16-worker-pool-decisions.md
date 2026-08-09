@@ -1,35 +1,35 @@
-# Worker Pool - Decisiones de Implementación
+# Worker Pool - Implementation Decisions
 
-## Módulo 7 — Worker Pool con Go Concurrency
+## Module 7 — Worker Pool with Go Concurrency
 
-### Objetivo
+### Objective
 
-Implementar procesamiento concurrente de eventos usando un worker pool con goroutines y channels.
+Implement concurrent event processing using a worker pool with goroutines and channels.
 
-### ¿Qué es un Worker Pool?
+### What is a Worker Pool?
 
-Un **Worker Pool** es un patrón de concurrencia que:
+A **Worker Pool** is a concurrency pattern that:
 
-- **Crea un número fijo de workers** (goroutines)
-- **Usa un channel** como cola de tareas
-- **Los workers procesan tareas** en paralelo
-- **Controla el uso de recursos** limitando la concurrencia
+- **Creates a fixed number of workers** (goroutines)
+- **Uses a channel** as a task queue
+- **Workers process tasks** in parallel
+- **Controls resource usage** by limiting concurrency
 
-### ¿Por qué necesitamos un Worker Pool?
+### Why Do We Need a Worker Pool?
 
-**Problema:**
-- Kinesis puede enviar muchos eventos rápidamente
-- Si procesamos cada evento en una goroutine nueva, podemos:
-  - Agotar memoria
-  - Sobrecargar la base de datos
-  - Causar rate limiting
+**Problem:**
+- Kinesis can send many events quickly
+- If we process each event in a new goroutine, we can:
+  - Exhaust memory
+  - Overload the database
+  - Cause rate limiting
 
-**Solución:**
-- Worker pool con número fijo de workers
-- Control de concurrencia
-- Procesamiento eficiente sin sobrecarga
+**Solution:**
+- Worker pool with fixed number of workers
+- Concurrency control
+- Efficient processing without overload
 
-### Arquitectura del Worker Pool
+### Worker Pool Architecture
 
 ```text
 Kinesis Consumer
@@ -51,30 +51,30 @@ Recommendation Service
    DynamoDB
 ```
 
-### Implementación del Worker Pool
+### Worker Pool Implementation
 
 #### WorkerPool
 
-**Ubicación**: `internal/infrastructure/processing/workerpool/worker_pool.go`
+**Location**: `internal/infrastructure/processing/workerpool/worker_pool.go`
 
-**Estructura:**
+**Structure:**
 ```go
 type WorkerPool struct {
-    numWorkers   int                    // Número de workers
-    eventChan    chan event.Event       // Channel de eventos (buffered)
-    processor    EventProcessor         // Interfaz para procesar eventos
-    wg           sync.WaitGroup         // Para esperar que terminen los workers
+    numWorkers   int                    // Number of workers
+    eventChan    chan event.Event       // Event channel (buffered)
+    processor    EventProcessor         // Interface for event processing
+    wg           sync.WaitGroup         // To wait for workers to finish
     logger       *slog.Logger          // Logger
-    ctx          context.Context       // Contexto para cancelación
-    cancel       context.CancelFunc     // Función para cancelar
+    ctx          context.Context       // Context for cancellation
+    cancel       context.CancelFunc     // Function to cancel
 }
 ```
 
-**Componentes clave:**
-- **Channel buffered**: Cola de eventos con capacidad limitada
-- **NumWorkers**: Número fijo de goroutines workers
-- **EventProcessor**: Interfaz para desacoplar lógica de procesamiento
-- **Context**: Para graceful shutdown
+**Key components:**
+- **Buffered channel**: Event queue with limited capacity
+- **NumWorkers**: Fixed number of worker goroutines
+- **EventProcessor**: Interface to decouple processing logic
+- **Context**: For graceful shutdown
 
 #### EventProcessor Interface
 
@@ -84,14 +84,14 @@ type EventProcessor interface {
 }
 ```
 
-**¿Por qué una interfaz?**
-- **Desacoplamiento**: El worker pool no sabe cómo procesar eventos
-- **Testabilidad**: Podemos usar mocks en tests
-- **Flexibilidad**: Podemos cambiar la implementación fácilmente
+**Why an interface?**
+- **Decoupling**: Worker pool doesn't know how to process events
+- **Testability**: We can use mocks in tests
+- **Flexibility**: We can easily change the implementation
 
-#### Métodos del Worker Pool
+#### Worker Pool Methods
 
-##### 1. Start - Iniciar Workers
+##### 1. Start - Start Workers
 ```go
 func (wp *WorkerPool) Start() {
     for i := 0; i < wp.numWorkers; i++ {
@@ -101,12 +101,12 @@ func (wp *WorkerPool) Start() {
 }
 ```
 
-**¿Qué hace?**
-- Crea `numWorkers` goroutines
-- Cada goroutine ejecuta `worker(i)`
-- Usa `WaitGroup` para trackear workers activos
+**What does it do?**
+- Creates `numWorkers` goroutines
+- Each goroutine executes `worker(i)`
+- Uses `WaitGroup` to track active workers
 
-##### 2. Worker - Goroutine Individual
+##### 2. Worker - Individual Goroutine
 ```go
 func (wp *WorkerPool) worker(id int) {
     defer wp.wg.Done()
@@ -114,54 +114,54 @@ func (wp *WorkerPool) worker(id int) {
     for {
         select {
         case <-wp.ctx.Done():
-            return  // Cerrar worker
+            return  // Close worker
         case ev := <-wp.eventChan:
-            wp.processor.ProcessEvent(wp.ctx, ev)  // Procesar evento
+            wp.processor.ProcessEvent(wp.ctx, ev)  // Process event
         }
     }
 }
 ```
 
-**Patrón clásico de worker:**
-- **Loop infinito**: El worker siempre está escuchando
-- **Select**: Espera either contexto cancelado o nuevo evento
+**Classic worker pattern:**
+- **Infinite loop**: Worker is always listening
+- **Select**: Waits for either context canceled or new event
 - **Context.Done()**: Graceful shutdown
-- **Channel receive**: Procesa evento cuando llega
+- **Channel receive**: Processes event when it arrives
 
-##### 3. Submit - Enviar Eventos
+##### 3. Submit - Send Events
 ```go
 func (wp *WorkerPool) Submit(ev event.Event) {
     select {
     case wp.eventChan <- ev:
-        // Evento enviado exitosamente
+        // Event sent successfully
     default:
-        // Channel lleno, drop evento
+        // Channel full, drop event
     }
 }
 ```
 
-**¿Por qué `select` con `default`?**
-- **Non-blocking**: No espera si el channel está lleno
-- **Backpressure**: Si el channel está lleno, dropea eventos
-- **Trade-off**: Mejor dropear eventos que bloquear al productor
+**Why `select` with `default`?**
+- **Non-blocking**: Doesn't wait if channel is full
+- **Backpressure**: If channel is full, drops events
+- **Trade-off**: Better to drop events than block the producer
 
-**Alternativa:** Podríamos usar blocking send, pero eso podría saturar al productor.
+**Alternative:** Could use blocking send, but that could saturate the producer.
 
 ##### 4. Stop - Graceful Shutdown
 ```go
 func (wp *WorkerPool) Stop() {
-    wp.cancel()           // Cancelar contexto
-    close(wp.eventChan)   // Cerrar channel
-    wp.wg.Wait()         // Esperar que terminen workers
+    wp.cancel()           // Cancel context
+    close(wp.eventChan)   // Close channel
+    wp.wg.Wait()         // Wait for workers to finish
 }
 ```
 
 **Graceful shutdown:**
-1. **Cancel context**: Workers reciben señal de parar
-2. **Close channel**: Desbloquea workers esperando en channel
-3. **WaitGroup**: Espera que todos los workers terminen
+1. **Cancel context**: Workers receive stop signal
+2. **Close channel**: Unblocks workers waiting on channel
+3. **WaitGroup**: Waits for all workers to finish
 
-##### 5. Stats - Métricas del Pool
+##### 5. Stats - Pool Metrics
 ```go
 func (wp *WorkerPool) Stats() map[string]interface{} {
     return map[string]interface{}{
@@ -172,20 +172,20 @@ func (wp *WorkerPool) Stats() map[string]interface{} {
 }
 ```
 
-**Métricas disponibles:**
-- **num_workers**: Número de workers activos
-- **buffer_size**: Capacidad del channel
-- **buffer_used**: Eventos actualmente en el channel
+**Available metrics:**
+- **num_workers**: Number of active workers
+- **buffer_size**: Channel capacity
+- **buffer_used**: Events currently in channel
 
 ### RecommendationProcessorAdapter
 
-**Ubicación**: `internal/infrastructure/processing/workerpool/processor_adapter.go`
+**Location**: `internal/infrastructure/processing/workerpool/processor_adapter.go`
 
-**Propósito:**
-- Conectar el `recommendation.Service` con el `WorkerPool`
-- Implementar la interfaz `EventProcessor`
+**Purpose:**
+- Connect the `recommendation.Service` with the `WorkerPool`
+- Implement the `EventProcessor` interface
 
-**Implementación:**
+**Implementation:**
 ```go
 type RecommendationProcessorAdapter struct {
     service *recommendation.Service
@@ -199,84 +199,84 @@ func (a *RecommendationProcessorAdapter) ProcessEvent(
 }
 ```
 
-**¿Por qué un adapter?**
-- **Interface segregation**: El worker pool solo conoce `EventProcessor`
-- **Single responsibility**: El adapter conecta dos capas
-- **Testabilidad**: Podemos mockear `EventProcessor` fácilmente
+**Why an adapter?**
+- **Interface segregation**: Worker pool only knows `EventProcessor`
+- **Single responsibility**: Adapter connects two layers
+- **Testability**: We can easily mock `EventProcessor`
 
-### Configuración del Worker Pool
+### Worker Pool Configuration
 
-#### Parámetros Configurables
+#### Configurable Parameters
 
 ```go
 NewWorkerPool(
-    numWorkers int,           // Número de workers (goroutines)
-    bufferSize int,            // Tamaño del channel buffer
-    processor EventProcessor,  // Procesador de eventos
+    numWorkers int,           // Number of workers (goroutines)
+    bufferSize int,            // Channel buffer size
+    processor EventProcessor,  // Event processor
     logger *slog.Logger,       // Logger
 )
 ```
 
-**Recomendaciones:**
-- **numWorkers**: Basado en número de CPUs o límites de DB
-- **bufferSize**: 2-3x numWorkers para evitar bloqueos
-- **Ejemplo**: 4 workers, buffer de 10-20 eventos
+**Recommendations:**
+- **numWorkers**: Based on number of CPUs or DB limits
+- **bufferSize**: 2-3x numWorkers to avoid blocking
+- **Example**: 4 workers, buffer of 10-20 events
 
-### Tests Implementados
+### Implemented Tests
 
 #### 1. TestWorkerPool_StartAndStop
-- Verifica que el pool inicia y detiene workers correctamente
-- Verifica graceful shutdown
+- Verifies pool starts and stops workers correctly
+- Verifies graceful shutdown
 
 #### 2. TestWorkerPool_SubmitAndProcess
-- Verifica que los eventos se procesan correctamente
-- Verifica que todos los eventos sean procesados
+- Verifies events are processed correctly
+- Verifies all events are processed
 
 #### 3. TestWorkerPool_ConcurrentProcessing
-- Verifica procesamiento concurrente con múltiples workers
-- Verifica que más eventos que workers se procesen correctamente
+- Verifies concurrent processing with multiple workers
+- Verifies more events than workers are processed correctly
 
 #### 4. TestWorkerPool_Stats
-- Verifica que las estadísticas sean correctas
-- Verifica num_workers y buffer_size
+- Verifies statistics are correct
+- Verifies num_workers and buffer_size
 
 #### 5. TestWorkerPool_Backpressure
-- Verifica comportamiento cuando el channel está lleno
-- Verifica que eventos sean dropeados cuando no hay capacidad
+- Verifies behavior when channel is full
+- Verifies events are dropped when no capacity
 
-### Trade-offs Considerados
+### Trade-offs Considered
 
 1. **Non-blocking vs Blocking Submit**
-   - **Elección**: Non-blocking con backpressure
-   - **Trade-off**: Pérdida de eventos vs saturación del productor
-   - **Decisión**: Mejor dropear eventos que bloquear al productor
+   - **Choice**: Non-blocking with backpressure
+   - **Trade-off**: Event loss vs producer saturation
+   - **Decision**: Better to drop events than block the producer
 
 2. **Fixed vs Dynamic Workers**
-   - **Elección**: Número fijo de workers
-   - **Trade-off**: Simplicidad vs auto-scaling
-   - **Decisión**: Número fijo es más simple y predecible
+   - **Choice**: Fixed number of workers
+   - **Trade-off**: Simplicity vs auto-scaling
+   - **Decision**: Fixed number is simpler and more predictable
 
 3. **Buffer Size**
-   - **Elección**: 2-3x numWorkers
-   - **Trade-off**: Memoria vs throughput
-   - **Decisión**: Balance razonable para la mayoría de casos
+   - **Choice**: 2-3x numWorkers
+   - **Trade-off**: Memory vs throughput
+   - **Decision**: Reasonable balance for most cases
 
-4. **Graceful Shutdown vs Immediate**
-   - **Elección**: Graceful shutdown con context
-   - **Trade-off**: Latencia vs completitud
-   - **Decisión**: Completitud es más importante para eventos
+4. **Graceful vs Immediate Shutdown**
+   - **Choice**: Graceful shutdown with context
+   - **Trade-off**: Latency vs completeness
+   - **Decision**: Completeness is more important for events
 
-### Validaciones Realizadas
+### Validations Performed
 
-- [x] Código compila sin errores
-- [x] Todos los tests del worker pool pasan
-- [x] Tests de concurrencia pasan
-- [x] Mock processor para testing
-- [x] Graceful shutdown implementado
-- [x] Backpressure handling implementado
-- [x] Stats function implementada
-- [x] Documentación de decisiones
+- [x] Code compiles without errors
+- [x] All worker pool tests pass
+- [x] Concurrency tests pass
+- [x] Mock processor for testing
+- [x] Graceful shutdown implemented
+- [x] Backpressure handling implemented
+- [x] Stats function implemented
+- [x] Documentation of decisions
 
-### Estado del Módulo 7
+### Module 7 Status
 
-- [x] Cerrado
+- [x] Closed

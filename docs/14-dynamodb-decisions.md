@@ -1,14 +1,14 @@
-# DynamoDB - Decisiones de Implementación
+# DynamoDB - Implementation Decisions
 
-## Módulo 5 — Persistence Layer con DynamoDB
+## Module 5 — Persistence Layer with DynamoDB
 
-### Objetivo
+### Objective
 
-Implementar persistencia real usando DynamoDB para producción y desarrollo local con MiniStack.
+Implement real persistence using DynamoDB for production and local development with MiniStack.
 
-### Diseño de la Tabla DynamoDB
+### DynamoDB Table Design
 
-#### Esquema de la Tabla
+#### Table Schema
 
 ```text
 Table Name: Recommendations
@@ -18,28 +18,28 @@ Attributes:
   - Score (Number)
 ```
 
-#### Decisión de Partition Key
+#### Partition Key Decision
 
-**Elección:** UserID como Partition Key, ProductID como Sort Key
+**Choice:** UserID as Partition Key, ProductID as Sort Key
 
-**Razones:**
-1. **Caso de uso principal**: `GET /recommendations/:userId` - queries por usuario
-2. **Performance**: Query por partition key es O(1)
-3. **Simplicidad**: Implementación directa del Repository interface
-4. **Costo**: Sin GSI, más económico
+**Reasons:**
+1. **Primary use case**: `GET /recommendations/:userId` - queries by user
+2. **Performance**: Query by partition key is O(1)
+3. **Simplicity**: Direct implementation of Repository interface
+4. **Cost**: No GSI, more economical
 
 **Trade-offs:**
-- **Ventaja**: Queries por usuario son muy rápidos
-- **Desventaja**: Un usuario con miles de productos puede tener partición grande
-- **Mitigación**: DynamoDB maneja particiones grandes con paginación automática
+- **Advantage**: User queries are very fast
+- **Disadvantage**: A user with thousands of products may have a large partition
+- **Mitigation**: DynamoDB handles large partitions with automatic pagination
 
-### Implementación del Repository
+### Repository Implementation
 
 #### DynamoDBRepository
 
-**Ubicación**: `internal/infrastructure/persistence/dynamodb/repository.go`
+**Location**: `internal/infrastructure/persistence/dynamodb/repository.go`
 
-**Estructura:**
+**Structure:**
 ```go
 type DynamoDBRepository struct {
     client    *dynamodb.Client
@@ -47,7 +47,7 @@ type DynamoDBRepository struct {
 }
 ```
 
-**Métodos:**
+**Methods:**
 
 ##### 1. GetByUserID
 ```go
@@ -57,12 +57,12 @@ func (r *DynamoDBRepository) GetByUserID(
 ) ([]recommendation.Recommendation, error)
 ```
 
-**Implementación:**
-- Usa `Query` operation con KeyConditionExpression
-- Expresión: `UserID = :uid`
-- Convierte AttributeValues a structs Go con `UnmarshalMap`
+**Implementation:**
+- Uses `Query` operation with KeyConditionExpression
+- Expression: `UserID = :uid`
+- Converts AttributeValues to Go structs with `UnmarshalMap`
 
-**Analogía SQL:**
+**SQL Analogy:**
 ```sql
 SELECT * FROM Recommendations WHERE UserID = :uid
 ```
@@ -75,19 +75,19 @@ func (r *DynamoDBRepository) Save(
 ) error
 ```
 
-**Implementación:**
-- Usa `PutItem` operation
-- Convierte struct Go a AttributeValues con `MarshalMap`
-- **Idempotente**: Si existe (mismo UserID + ProductID), lo reemplaza
+**Implementation:**
+- Uses `PutItem` operation
+- Converts Go struct to AttributeValues with `MarshalMap`
+- **Idempotent**: If exists (same UserID + ProductID), replaces it
 
-**Comportamiento:**
-- **Create**: Item no existe → crea nuevo
-- **Update**: Item existe → reemplaza completamente
-- **Upsert**: Operación de upsert automática
+**Behavior:**
+- **Create**: Item doesn't exist → creates new
+- **Update**: Item exists → complete replacement
+- **Upsert**: Automatic upsert operation
 
-### Mapeo DynamoDB ↔ Go
+### DynamoDB ↔ Go Mapping
 
-#### Tags dynamodbav
+#### dynamodbav Tags
 
 ```go
 type Recommendation struct {
@@ -97,16 +97,16 @@ type Recommendation struct {
 }
 ```
 
-**Propósito:**
-- Control explícito del mapeo entre structs Go y atributos DynamoDB
-- Evita inconsistencias de nombres
-- Permite nombres de atributos diferentes a nombres de campos Go
+**Purpose:**
+- Explicit control of mapping between Go structs and DynamoDB attributes
+- Avoids naming inconsistencies
+- Allows attribute names different from Go field names
 
-**Sin tags vs Con tags:**
-- **Sin tags**: SDK intenta mapeo automático (propenso a errores)
-- **Con tags**: Mapeo explícito y robusto
+**Without tags vs With tags:**
+- **Without tags**: SDK attempts automatic mapping (error-prone)
+- **With tags**: Explicit and robust mapping
 
-### Configuración del Cliente DynamoDB
+### DynamoDB Client Configuration
 
 #### NewDynamoDBClient (AWS Real)
 
@@ -114,28 +114,28 @@ type Recommendation struct {
 func NewDynamoDBClient(ctx context.Context, region string) (*dynamodb.Client, error)
 ```
 
-**Características:**
-- Usa `config.LoadDefaultConfig` para cargar credenciales automáticamente
-- Busca credenciales en:
-  1. Variables de entorno (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-  2. Archivo ~/.aws/credentials
-  3. IAM roles (si está en EC2/Lambda)
-- **Uso**: Producción en AWS
+**Features:**
+- Uses `config.LoadDefaultConfig` to automatically load credentials
+- Looks for credentials in:
+  1. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+  2. ~/.aws/credentials file
+  3. IAM roles (if in EC2/Lambda)
+- **Usage**: Production in AWS
 
-#### NewLocalDynamoDBClient (Desarrollo Local)
+#### NewLocalDynamoDBClient (Local Development)
 
 ```go
 func NewLocalDynamoDBClient(ctx context.Context, endpoint string) (*dynamodb.Client, error)
 ```
 
-**Características:**
-- Override del endpoint con `BaseEndpoint`
-- Apunta a local: `http://localhost:8000`
-- **Uso**: Desarrollo con MiniStack o DynamoDB Local
+**Features:**
+- Override endpoint with `BaseEndpoint`
+- Points to local: `http://localhost:8000`
+- **Usage**: Development with MiniStack or DynamoDB Local
 
-### Variables de Entorno
+### Environment Variables
 
-#### Configuración
+#### Configuration
 
 ```go
 type Config struct {
@@ -147,32 +147,32 @@ type Config struct {
 }
 ```
 
-#### Variables de Entorno
+#### Environment Variables
 
-| Variable            | Default           | Descripción                              |
+| Variable            | Default           | Description                              |
 | ------------------- | ----------------- | ---------------------------------------- |
-| `PORT`              | `8080`            | Puerto del servidor HTTP                 |
-| `USE_DYNAMODB`      | `false`           | Activar DynamoDB                         |
-| `DYNAMODB_TABLE`    | `Recommendations`  | Nombre de la tabla DynamoDB               |
-| `DYNAMODB_ENDPOINT` | `""`              | Endpoint para DynamoDB Local             |
-| `AWS_REGION`        | `us-east-1`       | Región AWS                              |
+| `PORT`              | `8080`            | HTTP server port                         |
+| `USE_DYNAMODB`      | `false`           | Enable DynamoDB                          |
+| `DYNAMODB_TABLE`    | `Recommendations`  | DynamoDB table name                      |
+| `DYNAMODB_ENDPOINT` | `""`              | Endpoint for DynamoDB Local              |
+| `AWS_REGION`        | `us-east-1`       | AWS region                               |
 
-#### Ejemplos de Uso
+#### Usage Examples
 
-**Desarrollo con Memory Repository:**
+**Development with Memory Repository:**
 ```bash
-# Sin variables de entorno adicionales
+# No additional environment variables
 go run cmd/api/main.go
 ```
 
-**Desarrollo con DynamoDB Local:**
+**Development with DynamoDB Local:**
 ```bash
 export USE_DYNAMODB=true
 export DYNAMODB_ENDPOINT=http://localhost:8000
 go run cmd/api/main.go
 ```
 
-**Producción en AWS:**
+**Production in AWS:**
 ```bash
 export USE_DYNAMODB=true
 export AWS_REGION=us-east-1
@@ -181,13 +181,13 @@ export AWS_SECRET_ACCESS_KEY=your_secret
 go run cmd/api/main.go
 ```
 
-### Selección Dinámica del Repository
+### Dynamic Repository Selection
 
-#### Lógica en main.go
+#### Logic in main.go
 
 ```go
 if config.UseDynamoDB {
-    // Configurar cliente DynamoDB
+    // Configure DynamoDB client
     if config.DynamoDBEndpoint != "" {
         client = dynamodb.NewLocalDynamoDBClient(...)
     } else {
@@ -199,68 +199,68 @@ if config.UseDynamoDB {
 }
 ```
 
-**Beneficios:**
-- **Desarrollo rápido**: Memory repository por defecto
-- **Testing local**: DynamoDB Local con endpoint override
-- **Producción**: DynamoDB con credenciales AWS
-- **Mismo código**: Cambio transparente sin modificar lógica de negocio
+**Benefits:**
+- **Rapid development**: Memory repository by default
+- **Local testing**: DynamoDB Local with endpoint override
+- **Production**: DynamoDB with AWS credentials
+- **Same code**: Transparent change without modifying business logic
 
-### Paquetes AWS SDK Instalados
+### Installed AWS SDK Packages
 
-1. **`github.com/aws/aws-sdk-go-v2`**: SDK principal de AWS
-2. **`github.com/aws/aws-sdk-go-v2/config`**: Configuración de credenciales y regiones
-3. **`github.com/aws/aws-sdk-go-v2/service/dynamodb`**: Cliente específico de DynamoDB
-4. **`github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue`**: Conversión entre Go y DynamoDB
+1. **`github.com/aws/aws-sdk-go-v2`**: Main AWS SDK
+2. **`github.com/aws/aws-sdk-go-v2/config`**: Credential and region configuration
+3. **`github.com/aws/aws-sdk-go-v2/service/dynamodb`**: DynamoDB specific client
+4. **`github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue`**: Conversion between Go and DynamoDB
 
 ### Tests
 
-#### Estado Actual
+#### Current Status
 
-Los tests de DynamoDB están en `Skip` porque:
+DynamoDB tests are in `Skip` because:
 
-1. **SDK no usa interfaces**: El cliente DynamoDB es un struct concreto, no una interfaz
-2. **Mocking difícil**: No se puede mockear fácilmente sin wrappers
-3. **Tests de integración**: Requieren DynamoDB Local o LocalStack
+1. **SDK doesn't use interfaces**: DynamoDB client is a concrete struct, not an interface
+2. **Difficult mocking**: Cannot easily mock without wrappers
+3. **Integration tests**: Require DynamoDB Local or LocalStack
 
-#### Plan para Tests
+#### Test Plan
 
-Los tests de integración se implementarán en el **Módulo 9 - MiniStack** cuando configuremos:
-- DynamoDB Local para testing
-- Tests end-to-end con DynamoDB real
-- Validación de schema y operaciones
+Integration tests will be implemented in **Module 9 - MiniStack** when we configure:
+- DynamoDB Local for testing
+- End-to-end tests with real DynamoDB
+- Schema and operations validation
 
-### Trade-offs Considerados
+### Trade-offs Considered
 
 1. **Partition Key Strategy**
-   - **Elección**: UserID como PK
-   - **Trade-off**: Queries rápidos vs particiones grandes
-   - **Decisión**: Queries por usuario son el caso de uso principal
+   - **Choice**: UserID as PK
+   - **Trade-off**: Fast queries vs large partitions
+   - **Decision**: User queries are the primary use case
 
 2. **Memory vs DynamoDB Repository**
-   - **Elección**: Ambos con selección dinámica
-   - **Trade-off**: Complejidad vs flexibilidad
-   - **Decisión**: Flexibilidad para diferentes entornos
+   - **Choice**: Both with dynamic selection
+   - **Trade-off**: Complexity vs flexibility
+   - **Decision**: Flexibility for different environments
 
-3. **Tags dynamodbav**
-   - **Elección**: Tags explícitos en todos los campos
-   - **Trade-off**: Verbosidad vs robustez
-   - **Decisión**: Robustez y control explícito
+3. **dynamodbav Tags**
+   - **Choice**: Explicit tags on all fields
+   - **Trade-off**: Verbosity vs robustness
+   - **Decision**: Robustness and explicit control
 
-4. **Tests Unitarios vs Integración**
-   - **Elección**: Tests de integración en Módulo 9
-   - **Trade-off**: Cobertura temprana vs infraestructura real
-   - **Decisión**: Tests de integración con DynamoDB Local son más valiosos
+4. **Unit vs Integration Tests**
+   - **Choice**: Integration tests in Module 9
+   - **Trade-off**: Early coverage vs real infrastructure
+   - **Decision**: Integration tests with DynamoDB Local are more valuable
 
-### Validaciones Realizadas
+### Validations Performed
 
-- [x] Código compila sin errores
-- [x] Todos los tests existentes pasan
-- [x] Configuración de variables de entorno
-- [x] Selección dinámica de repository
-- [x] Mapeo DynamoDB ↔ Go con tags
-- [x] Cliente DynamoDB para AWS y local
-- [x] Documentación de decisiones
+- [x] Code compiles without errors
+- [x] All existing tests pass
+- [x] Environment variable configuration
+- [x] Dynamic repository selection
+- [x] DynamoDB ↔ Go mapping with tags
+- [x] DynamoDB client for AWS and local
+- [x] Documentation of decisions
 
-### Estado del Módulo 5
+### Module 5 Status
 
-- [x] Cerrado (tests de integración pendientes en Módulo 9)
+- [x] Closed (integration tests pending in Module 9)

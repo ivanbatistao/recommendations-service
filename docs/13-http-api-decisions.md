@@ -1,21 +1,21 @@
-# HTTP API - Decisiones de Implementación
+# HTTP API - Implementation Decisions
 
-## Módulo 4 — HTTP API con Gin
+## Module 4 — HTTP API with Gin
 
-### Objetivo
+### Objective
 
-Exponer los casos de uso mediante una API REST usando Gin.
+Expose use cases through a REST API using Gin.
 
-### Endpoints Implementados
+### Implemented Endpoints
 
 #### 1. GET /health
-- **Propósito**: Health check del servicio
+- **Purpose**: Service health check
 - **Response**: `{"status": "ok"}`
 - **Status Code**: 200 OK
 
 #### 2. GET /recommendations/:userId
-- **Propósito**: Obtener recomendaciones para un usuario
-- **Parámetros**: `userId` (path parameter)
+- **Purpose**: Get recommendations for a user
+- **Parameters**: `userId` (path parameter)
 - **Response**:
 ```json
 {
@@ -29,12 +29,12 @@ Exponer los casos de uso mediante una API REST usando Gin.
 }
 ```
 - **Status Codes**:
-  - 200 OK: Recomendaciones encontradas
-  - 400 Bad Request: userId vacío
-  - 500 Internal Server Error: Error del servicio
+  - 200 OK: Recommendations found
+  - 400 Bad Request: Empty userId
+  - 500 Internal Server Error: Service error
 
 #### 3. POST /events
-- **Propósito**: Procesar un evento de interacción
+- **Purpose**: Process an interaction event
 - **Request Body**:
 ```json
 {
@@ -53,12 +53,12 @@ Exponer los casos de uso mediante una API REST usando Gin.
 ```
 - **Response**: `{"status": "event processed"}`
 - **Status Codes**:
-  - 202 Accepted: Evento procesado
-  - 400 Bad Request: JSON inválido o datos inválidos
-  - 500 Internal Server Error: Error del servicio
+  - 202 Accepted: Event processed
+  - 400 Bad Request: Invalid JSON or invalid data
+  - 500 Internal Server Error: Service error
 
 #### 4. POST /recommendations/generate
-- **Propósito**: Generar recomendaciones desde un batch de eventos
+- **Purpose**: Generate recommendations from a batch of events
 - **Request Body**:
 ```json
 {
@@ -88,9 +88,9 @@ Exponer los casos de uso mediante una API REST usando Gin.
 }
 ```
 - **Status Codes**:
-  - 200 OK: Recomendaciones generadas
-  - 400 Bad Request: JSON inválido o datos inválidos
-  - 500 Internal Server Error: Error del servicio
+  - 200 OK: Recommendations generated
+  - 400 Bad Request: Invalid JSON or invalid data
+  - 500 Internal Server Error: Service error
 
 ### Handler Structure
 
@@ -103,72 +103,72 @@ type Handler struct {
 }
 ```
 
-**Decisiones**:
-- Handler contiene referencias a los handlers de aplicación
-- Constructor injection para testabilidad
-- No hay lógica de negocio en los handlers HTTP
+**Decisions**:
+- Handler contains references to application handlers
+- Constructor injection for testability
+- No business logic in HTTP handlers
 
-### Validaciones HTTP
+### HTTP Validations
 
 #### GetRecommendations
-- Valida que `userId` no esté vacío
-- Retorna 400 si el parámetro falta
+- Validates that `userId` is not empty
+- Returns 400 if parameter is missing
 
 #### ProcessEvent
-- Valida el body JSON con `ShouldBindJSON`
-- Valida el timestamp en `ToEventDomain`
-- Retorna 400 si el JSON es inválido
+- Validates JSON body with `ShouldBindJSON`
+- Validates timestamp in `ToEventDomain`
+- Returns 400 if JSON is invalid
 
 #### GenerateRecommendations
-- Valida el body JSON con `ShouldBindJSON`
-- Valida que `user_id`, `events` y `limit` estén presentes
-- Valida cada evento en `ToEventDomain`
-- Retorna 400 si el JSON es inválido
+- Validates JSON body with `ShouldBindJSON`
+- Validates that `user_id`, `events`, and `limit` are present
+- Validates each event in `ToEventDomain`
+- Returns 400 if JSON is invalid
 
-### Conversiones
+### Conversions
 
 #### Request → DTO → Domain
-- Los requests HTTP se convierten a DTOs
-- Los DTOs se convierten a entidades del dominio
-- La conversión maneja timestamps (string RFC3339 → time.Time)
+- HTTP requests are converted to DTOs
+- DTOs are converted to domain entities
+- Conversion handles timestamps (RFC3339 string → time.Time)
 
 #### Domain → DTO → Response
-- Las entidades del dominio se convierten a DTOs
-- Los DTOs se serializan a JSON
-- La conversión usa funciones helper en el paquete `dto`
+- Domain entities are converted to DTOs
+- DTOs are serialized to JSON
+- Conversion uses helper functions in `dto` package
 
 ### Error Handling
 
-#### Errores del Dominio
-- Los errores del dominio se propagan sin wrapping
-- Se retornan como 500 Internal Server Error con el mensaje
-- Errores de validación se convierten a 400 Bad Request
+#### Domain Errors
+- Domain errors propagate without wrapping
+- Returned as 500 Internal Server Error with message
+- Validation errors converted to 400 Bad Request
 
-#### Errores HTTP
+#### HTTP Errors
 - JSON parsing errors → 400 Bad Request
 - Binding errors → 400 Bad Request
 - Internal errors → 500 Internal Server Error
 
 ### Memory Repository
 
-#### Implementación
-- **Ubicación**: `internal/infrastructure/persistence/memory/repository.go`
-- **Propósito**: Repository en memoria para desarrollo local
-- **Características**:
-  - Thread-safe con `sync.RWMutex`
-  - Mapa de `userID → []Recommendation`
-  - Actualización in-place si la recomendación existe
-  - Creación nueva si no existe
+#### Implementation
+- **Location**: `internal/infrastructure/persistence/memory/repository.go`
+- **Purpose**: In-memory repository for local development
+- **Features**:
+  - Thread-safe with `sync.RWMutex`
+  - Map of `userID → []Recommendation`
+  - In-place update if recommendation exists
+  - New creation if doesn't exist
 
-**Decisiones**:
-- Usado para desarrollo local y testing
-- Reemplazable por DynamoDB en producción
-- No persiste entre reinicios del servidor
+**Decisions**:
+- Used for local development and testing
+- Replaceable by DynamoDB in production
+- Doesn't persist between server restarts
 
 ### Composition Root
 
 #### main.go
-El `main.go` actúa como composition root:
+The `main.go` acts as composition root:
 
 ```go
 repository := memory.NewMemoryRepository()
@@ -188,77 +188,77 @@ router := httpgin.NewRouter(handler)
 server := httpgin.NewServer(config.Port, router)
 ```
 
-**Decisiones**:
-- Inyección manual de dependencias
-- No usa framework de DI
-- Fácil de testear con fakes/mocks
-- Fácil de cambiar a DynamoDB en el futuro
+**Decisions**:
+- Manual dependency injection
+- No DI framework
+- Easy to test with fakes/mocks
+- Easy to switch to DynamoDB in the future
 
-### Tests HTTP
+### HTTP Tests
 
 #### TestHealth
-- Verifica que `/health` retorna 200
-- Verifica el body `{"status":"ok"}`
-- Verifica el header `X-Request-ID`
+- Verifies that `/health` returns 200
+- Verifies body `{"status":"ok"}`
+- Verifies header `X-Request-ID`
 
 #### TestHealthWithRequestID
-- Verifica que el `X-Request-ID` se propaga
-- Envía un header y verifica que se retorne el mismo
+- Verifies that `X-Request-ID` propagates
+- Sends a header and verifies the same is returned
 
 #### TestGetRecommendations
-- Crea una recomendación en el repository
-- Llama al endpoint GET /recommendations/:userId
-- Verifica que retorne la recomendación correcta
+- Creates a recommendation in repository
+- Calls GET /recommendations/:userId endpoint
+- Verifies correct recommendation is returned
 
 #### TestProcessEvent
-- Llama al endpoint POST /events
-- Verifica que la recomendación se cree en el repository
-- Verifica el status code 202 Accepted
+- Calls POST /events endpoint
+- Verifies recommendation is created in repository
+- Verifies status code 202 Accepted
 
 #### TestGenerateRecommendations
-- Llama al endpoint POST /recommendations/generate
-- Verifica que se generen las recomendaciones correctas
-- Verifica el orden por score descendente
+- Calls POST /recommendations/generate endpoint
+- Verifies correct recommendations are generated
+- Verifies descending score order
 
 ### Middleware
 
 #### Request ID
-- Genera un UUID si no está presente
-- Propaga el header a la respuesta
-- Útil para tracing y debugging
+- Generates UUID if not present
+- Propagates header to response
+- Useful for tracing and debugging
 
 #### Logger
 - Gin's built-in logger
-- Registra todas las requests
-- Formato: `[GIN] method path status latency`
+- Logs all requests
+- Format: `[GIN] method path status latency`
 
 #### Recovery
 - Gin's built-in recovery
-- Captura panics y retorna 500
-- Evita que el servidor se caiga
+- Catches panics and returns 500
+- Prevents server from crashing
 
-### Validaciones Realizadas
+### Validations Performed
 
-- [x] `internal/infrastructure/http/gin` depende de Gin (intencional)
-- [x] `internal/infrastructure/http/gin` no depende de AWS SDK
-- [x] Los handlers no contienen lógica de negocio
-- [x] Todos los tests HTTP pasan
-- [x] Tests con race detector pasan
-- [x] Go vet no reporta errores
-- [x] Formateo con gofmt aplicado
-- [x] El servidor arranca correctamente
-- [x] Todos los endpoints responden correctamente
+- [x] `internal/infrastructure/http/gin` depends on Gin (intentional)
+- [x] `internal/infrastructure/http/gin` doesn't depend on AWS SDK
+- [x] Handlers don't contain business logic
+- [x] All HTTP tests pass
+- [x] Tests with race detector pass
+- [x] Go vet reports no errors
+- [x] Formatted with gofmt
+- [x] Server starts correctly
+- [x] All endpoints respond correctly
 
-### Trade-offs Considerados
+### Trade-offs Considered
 
-1. **Memory Repository vs DynamoDB**: Se usó memory repository para desarrollo local. Facilita testing y desarrollo rápido. Será reemplazado por DynamoDB en el Módulo 5.
+1. **Memory Repository vs DynamoDB**: Used memory repository for local development. Facilitates testing and rapid development. Will be replaced by DynamoDB in Module 5.
 
-2. **Handler Composition vs Single Handler**: Se usó un struct Handler con múltiples métodos en lugar de handlers separados. Facilita la inyección de dependencias y mantiene consistencia.
+2. **Handler Composition vs Single Handler**: Used a Handler struct with multiple methods instead of separate handlers. Facilitates dependency injection and maintains consistency.
 
-3. **Error Responses Simples vs Structured**: Se usaron responses simples con mensajes de error. Futuras mejoras podrían incluir códigos de error estructurados para mejor debugging.
+3. **Simple vs Structured Error Responses**: Used simple responses with error messages. Future improvements could include structured error codes for better debugging.
 
-4. **Context Propagation**: Se usa `c.Request.Context()` para propagar context a los handlers de aplicación. Permite cancelación y timeouts en el futuro.
+4. **Context Propagation**: Uses `c.Request.Context()` to propagate context to application handlers. Enables cancellation and timeouts in the future.
 
-### Estado del Módulo 4
+### Module 4 Status
 
-- [x] Cerrado
+- [x] Closed

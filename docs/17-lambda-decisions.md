@@ -1,21 +1,21 @@
-# AWS Lambda - Decisiones de Implementación
+# AWS Lambda - Implementation Decisions
 
-## Módulo 8 — AWS Lambda Integration
+## Module 8 — AWS Lambda Integration
 
-### Objetivo
+### Objective
 
-Adaptar el código para ejecutar en AWS Lambda como función serverless.
+Adapt the code to run on AWS Lambda as a serverless function.
 
-### ¿Qué es AWS Lambda?
+### What is AWS Lambda?
 
-**AWS Lambda** es un servicio serverless que:
+**AWS Lambda** is a serverless service that:
 
-- **Ejecuta código** sin provisioning de servidores
-- **Escala automáticamente** según el tráfico
-- **Cobra por uso** (milisegundos de ejecución + memoria)
-- **Se integra** con otros servicios AWS (API Gateway, Kinesis, etc.)
+- **Executes code** without server provisioning
+- **Scales automatically** based on traffic
+- **Charges for usage** (execution milliseconds + memory)
+- **Integrates** with other AWS services (API Gateway, Kinesis, etc.)
 
-### Arquitectura con Lambda
+### Architecture with Lambda
 
 ```text
 API Gateway
@@ -30,30 +30,30 @@ AWS Lambda
   DynamoDB
 ```
 
-### Decisión de Arquitectura Lambda
+### Lambda Architecture Decision
 
-#### No usar Gin en Lambda
+#### Not Using Gin in Lambda
 
-**Decisión:** No usar Gin HTTP framework directamente en Lambda
+**Decision:** Do not use Gin HTTP framework directly in Lambda
 
-**Razones:**
-1. **Simplicidad**: Gin está diseñado para servidores HTTP persistentes
-2. **Performance**: Lambda tiene timeouts cortos, Gin adds overhead
-3. **Mantenimiento**: Dos codebases diferentes (HTTP server vs Lambda)
-4. **Testing**: Más fácil testear handlers directos que adaptadores Gin
+**Reasons:**
+1. **Simplicity**: Gin is designed for persistent HTTP servers
+2. **Performance**: Lambda has short timeouts, Gin adds overhead
+3. **Maintenance**: Two different codebases (HTTP server vs Lambda)
+4. **Testing**: Easier to test direct handlers than Gin adapters
 
-**Alternativa:**
-- Reutilizar handlers de aplicación directamente
-- Convertir `APIGatewayProxyRequest` → Commands/Queries
-- Convertir Responses → `APIGatewayProxyResponse`
+**Alternative:**
+- Reuse application handlers directly
+- Convert `APIGatewayProxyRequest` → Commands/Queries
+- Convert Responses → `APIGatewayProxyResponse`
 
-### Implementación del Handler Lambda
+### Lambda Handler Implementation
 
 #### LambdaHandler
 
-**Ubicación**: `cmd/lambda/main.go`
+**Location**: `cmd/lambda/main.go`
 
-**Estructura:**
+**Structure:**
 ```go
 type LambdaHandler struct {
     getRecommendationsHandler    *queries.GetRecommendationsHandler
@@ -63,12 +63,12 @@ type LambdaHandler struct {
 }
 ```
 
-**Componentes:**
-- Reutiliza handlers de aplicación existentes
-- No usa Gin directamente
-- Logger estructurado para CloudWatch
+**Components:**
+- Reuses existing application handlers
+- Doesn't use Gin directly
+- Structured logging for CloudWatch
 
-#### HandleRequest - Router API Gateway
+#### HandleRequest - API Gateway Router
 
 ```go
 func (h *LambdaHandler) HandleRequest(
@@ -77,64 +77,64 @@ func (h *LambdaHandler) HandleRequest(
 ) (events.APIGatewayProxyResponse, error)
 ```
 
-**Conversión API Gateway → Handlers:**
-- API Gateway envía `APIGatewayProxyRequest`
-- Rutea manual por path y method
-- Llama a los handlers de aplicación
-- Retorna `APIGatewayProxyResponse`
+**API Gateway → Handlers conversion:**
+- API Gateway sends `APIGatewayProxyRequest`
+- Manual routing by path and method
+- Calls application handlers
+- Returns `APIGatewayProxyResponse`
 
-**Rutas soportadas:**
+**Supported routes:**
 - `GET /health` → Health check
 - `GET /recommendations/{userId}` → Get recommendations
 - `POST /events` → Process event
 - `POST /recommendations/generate` → Generate recommendations
 
-#### Métodos de Handlers
+#### Handler Methods
 
 ##### 1. handleHealth
 ```go
 func (h *LambdaHandler) handleHealth(ctx context.Context) (events.APIGatewayProxyResponse, error)
 ```
 
-**Implementación:**
-- Retorna `{"status":"ok"}` simple
-- Útil para health checks de API Gateway
+**Implementation:**
+- Returns simple `{"status":"ok"}`
+- Useful for API Gateway health checks
 
 ##### 2. handleGetRecommendations
 ```go
 func (h *LambdaHandler) handleGetRecommendations(ctx context.Context, userID string) (events.APIGatewayProxyResponse, error)
 ```
 
-**Implementación:**
-- Extrae userID de path parameters
-- Llama a `GetRecommendationsHandler`
-- Convierte a DTOs y JSON
-- Retorna 200 con recommendations o 400/500 en error
+**Implementation:**
+- Extracts userID from path parameters
+- Calls `GetRecommendationsHandler`
+- Converts to DTOs and JSON
+- Returns 200 with recommendations or 400/500 on error
 
 ##### 3. handleProcessEvent
 ```go
 func (h *LambdaHandler) handleProcessEvent(ctx context.Context, body string) (events.APIGatewayProxyResponse, error)
 ```
 
-**Implementación:**
-- Parsea JSON body a EventDTO
-- Convierte a domain Event
-- Llama a `ProcessEventHandler`
-- Retorna 202 Accepted o 400/500 en error
+**Implementation:**
+- Parses JSON body to EventDTO
+- Converts to domain Event
+- Calls `ProcessEventHandler`
+- Returns 202 Accepted or 400/500 on error
 
 ##### 4. handleGenerateRecommendations
 ```go
 func (h *LambdaHandler) handleGenerateRecommendations(ctx context.Context, body string) (events.APIGatewayProxyResponse, error)
 ```
 
-**Implementación:**
-- Parsea JSON body con userID, events, limit
-- Convierte EventDTOs a domain Events
-- Llama a `GenerateRecommendationsHandler`
-- Convierte a DTOs y JSON
-- Retorna 200 con recommendations o 400/500 en error
+**Implementation:**
+- Parses JSON body with userID, events, limit
+- Converts EventDTOs to domain Events
+- Calls `GenerateRecommendationsHandler`
+- Converts to DTOs and JSON
+- Returns 200 with recommendations or 400/500 on error
 
-### Inicialización en Lambda
+### Initialization in Lambda
 
 #### NewLambdaHandler
 
@@ -142,20 +142,20 @@ func (h *LambdaHandler) handleGenerateRecommendations(ctx context.Context, body 
 func NewLambdaHandler() *LambdaHandler
 ```
 
-**Similar a main.go:**
-- Carga configuración de variables de entorno
-- Selecciona repository (DynamoDB o memory)
-- Crea handlers de aplicación
-- Retorna LambdaHandler inicializado
+**Similar to main.go:**
+- Loads configuration from environment variables
+- Selects repository (DynamoDB or memory)
+- Creates application handlers
+- Returns initialized LambdaHandler
 
-**Diferencias con main.go:**
-- No crea servidor HTTP
-- No maneja graceful shutdown
-- No escucha en puerto
+**Differences from main.go:**
+- Doesn't create HTTP server
+- Doesn't handle graceful shutdown
+- Doesn't listen on port
 
-### Dockerfile para Lambda
+### Dockerfile for Lambda
 
-**Ubicación**: `Dockerfile.lambda`
+**Location**: `Dockerfile.lambda`
 
 ```dockerfile
 FROM golang:1.26.5 AS builder
@@ -166,89 +166,89 @@ COPY --from=builder /bootstrap /bootstrap
 ENTRYPOINT ["/bootstrap"]
 ```
 
-**Características:**
-- Multi-stage build (compilación + runtime)
-- Binary standalone: `/bootstrap`
-- Distroless base para seguridad
-- Compatible con AWS Lambda custom runtimes
+**Features:**
+- Multi-stage build (compilation + runtime)
+- Standalone binary: `/bootstrap`
+- Distroless base for security
+- Compatible with AWS Lambda custom runtimes
 
-### Variables de Entorno Lambda
+### Lambda Environment Variables
 
-#### Configuración AWS Lambda
+#### AWS Lambda Configuration
 
-| Variable            | Default           | Descripción                              |
+| Variable            | Default           | Description                              |
 | ------------------- | ----------------- | ---------------------------------------- |
-| `USE_DYNAMODB`      | `true`            | Usar DynamoDB en Lambda                  |
-| `DYNAMODB_TABLE`    | `Recommendations`  | Nombre de la tabla DynamoDB               |
-| `AWS_REGION`        | Desde Lambda      | Región AWS (configurada por Lambda)     |
-| `GIN_MODE`          | N/A               | No aplica en Lambda                       |
+| `USE_DYNAMODB`      | `true`            | Use DynamoDB in Lambda                  |
+| `DYNAMODB_TABLE`    | `Recommendations`  | DynamoDB table name                      |
+| `AWS_REGION`        | From Lambda       | AWS region (configured by Lambda)       |
+| `GIN_MODE`          | N/A               | Not applicable in Lambda                 |
 
-#### Configuración Local para Testing
+#### Local Configuration for Testing
 
 ```bash
-USE_DYNAMODB=false  # Usar memory repository para tests locales
+USE_DYNAMODB=false  # Use memory repository for local tests
 ```
 
-### Tests Implementados
+### Implemented Tests
 
 #### 1. TestLambdaHandler_HandleHealth
-- Verifica health check simple
-- Verifica status 200 y body correcto
+- Verifies simple health check
+- Verifies status 200 and correct body
 
 #### 2. TestLambdaHandler_HandleGetRecommendations
-- Verifica GET /recommendations/{userId}
-- Verifica parsing de path parameters
-- Verifica response structure
+- Verifies GET /recommendations/{userId}
+- Verifies path parameter parsing
+- Verifies response structure
 
 #### 3. TestLambdaHandler_HandleProcessEvent
-- Verifica POST /events
-- Verifica parsing de JSON body
-- Verifica conversión a domain Event
-- Verifica status 202 Accepted
+- Verifies POST /events
+- Verifies JSON body parsing
+- Verifies conversion to domain Event
+- Verifies status 202 Accepted
 
 #### 4. TestLambdaHandler_HandleGenerateRecommendations
-- Verifica POST /recommendations/generate
-- Verifica parsing de request complejo
-- Verifica conversión de múltiples eventos
-- Verifica response structure
+- Verifies POST /recommendations/generate
+- Verifies complex request parsing
+- Verifies multiple event conversion
+- Verifies response structure
 
 #### 5. TestLambdaHandler_HandleNotFound
-- Verifica rutas no existentes
-- Verifica status 404
+- Verifies non-existent routes
+- Verifies status 404
 
-### Trade-offs Considerados
+### Trade-offs Considered
 
 1. **Gin vs Direct Handlers**
-   - **Elección**: Direct handlers en Lambda
-   - **Trade-off**: Compartición de código vs simplicidad
-   - **Decisión**: Handlers de aplicación son compartidos, solo adaptador es diferente
+   - **Choice**: Direct handlers in Lambda
+   - **Trade-off**: Code sharing vs simplicity
+   - **Decision**: Application handlers are shared, only adapter is different
 
 2. **Custom Runtime vs SAM/Serverless Framework**
-   - **Elección**: Custom runtime con Docker
-   - **Trade-off**: Control vs conveniencia
-   - **Decisión**: Custom runtime da más control y flexibilidad
+   - **Choice**: Custom runtime with Docker
+   - **Trade-off**: Control vs convenience
+   - **Decision**: Custom runtime gives more control and flexibility
 
-3. **Single Lambda vs Multiple Lambdas**
-   - **Elección**: Single Lambda con routing manual
-   - **Trade-off**: Simplicidad vs especialización
-   - **Decisión**: Single lambda es más simple para este caso de uso
+3. **Single vs Multiple Lambdas**
+   - **Choice**: Single Lambda with manual routing
+   - **Trade-off**: Simplicity vs specialization
+   - **Decision**: Single lambda is simpler for this use case
 
-4. **Memory Repository vs DynamoDB en Lambda**
-   - **Elección**: DynamoDB por defecto en Lambda
-   - **Trade-off**: Persistencia vs simplicidad
-   - **Decisión**: Lambda es para producción, usar DynamoDB real
+4. **Memory vs DynamoDB in Lambda**
+   - **Choice**: DynamoDB by default in Lambda
+   - **Trade-off**: Persistence vs simplicity
+   - **Decision**: Lambda is for production, use real DynamoDB
 
-### Validaciones Realizadas
+### Validations Performed
 
-- [x] Código compila sin errores
-- [x] Tests del handler Lambda pasan
-- [x] Dockerfile para Lambda creado
-- [x] Reutilización de handlers de aplicación
-- [x] Conversión API Gateway ↔ Domain
-- [x] Manejo de errores apropiado
-- [x] Logging estructurado para CloudWatch
-- [x] Documentación de decisiones
+- [x] Code compiles without errors
+- [x] Lambda handler tests pass
+- [x] Dockerfile for Lambda created
+- [x] Reuse of application handlers
+- [x] API Gateway ↔ Domain conversion
+- [x] Appropriate error handling
+- [x] Structured logging for CloudWatch
+- [x] Documentation of decisions
 
-### Estado del Módulo 8
+### Module 8 Status
 
-- [x] Cerrado (deployment requeriría configuración AWS adicional)
+- [x] Closed (deployment would require additional AWS configuration)

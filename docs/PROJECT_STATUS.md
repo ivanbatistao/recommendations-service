@@ -1,92 +1,92 @@
-# Estado del Proyecto - Roadmap vs Implementación Real
+# Project Status - Roadmap vs Actual Implementation
 
-## Resumen General
+## General Summary
 
-**Roadmap original:** 21 módulos muy detallados
-**Implementación actual:** 8 módulos simplificados/enfocados
+**Original roadmap:** 21 very detailed modules
+**Current implementation:** 8 simplified/focused modules
 
-## Comparación Detallada
+## Detailed Comparison
 
-### ✅ Módulos Completados (Implementación Real)
+### ✅ Completed Modules (Actual Implementation)
 
-| Módulo Roadmap | Módulo Implementado | Estado |
+| Roadmap Module | Implemented Module | Status |
 |----------------|---------------------|--------|
-| Módulo 0 - Problem Definition | ✅ Documentación existente | **Completado** |
-| Módulo 1 - Project Bootstrap | ✅ Bootstrap funcional | **Completado** |
-| Módulo 2 - Domain Layer | ✅ Dominio completo | **Completado** |
-| Módulo 3 - Application Layer | ✅ Commands/Queries/DTOs | **Completado** |
-| Módulo 4 - HTTP API con Gin | ✅ Todos los endpoints | **Completado** |
-| Módulo 5 - DynamoDB | ✅ Repository DynamoDB | **Completado** |
-| Módulo 6 - Kinesis | ✅ Producer/Consumer | **Completado** |
-| Módulo 7 - Worker Pool | ✅ Concurrency implementada | **Completado** |
-| Módulo 8 - AWS Lambda | ✅ Handler Lambda | **Completado** |
+| Module 0 - Problem Definition | ✅ Existing documentation | **Completed** |
+| Module 1 - Project Bootstrap | ✅ Functional bootstrap | **Completed** |
+| Module 2 - Domain Layer | ✅ Complete domain | **Completed** |
+| Module 3 - Application Layer | ✅ Commands/Queries/DTOs | **Completed** |
+| Module 4 - HTTP API with Gin | ✅ All endpoints | **Completed** |
+| Module 5 - DynamoDB | ✅ DynamoDB Repository | **Completed** |
+| Module 6 - Kinesis | ✅ Producer/Consumer | **Completed** |
+| Module 7 - Worker Pool | ✅ Concurrency implemented | **Completed** |
+| Module 8 - AWS Lambda | ✅ Lambda Handler | **Completed** |
 
-### ⏳ Módulos Pendientes (Roadmap Original)
+### ⏳ Pending Modules (Original Roadmap)
 
-| Módulo Roadmap | Tareas Clave | Estado |
-|----------------|-------------|--------|
-| Módulo 9 - MiniStack | Configurar LocalStack, DynamoDB Local, Kinesis Local | **❌ No implementado** |
-| Módulo 10 - Testing | Tests integración, miniatura de eventos | **❌ No implementado** |
-| Módulo 11 - Performance | Benchmarking, pprof, optimización | **❌ No implementado** |
-| Módulo 12 - Load Testing | k6 scripts, pruebas de carga | **❌ No implementado** |
-| Módulo 13 - Observability | CloudWatch, metrics, tracing | **❌ No implementado** |
-| Módulo 14 - Resilience | Retry, circuit breaker, backoff | **❌ No implementado** |
-| Módulo 15 - Dev Experience | Scripts, Makefile, local dev tools | **❌ No implementado** |
-| Módulo 16 - IaC | Terraform, AWS resources | **❌ No implementado** |
-| Módulo 17 - AWS Deployment | SAM/Serverless Framework | **❌ No implementado** |
-| Módulo 18 - CI/CD | GitHub Actions, pipeline | **❌ No implementado** |
-| Módulo 19 - Documentation | ADRs, Runbooks | **❌ No implementado** |
-| Módulo 20 - Interview Prep | System design practice | **❌ No implementado** |
-| Módulo 21 - CV & LinkedIn | Actualización CV | **❌ No implementado** |
+| Roadmap Module | Key Tasks | Status |
+|----------------|----------|--------|
+| Module 9 - MiniStack | Configure LocalStack, DynamoDB Local, Kinesis Local | **❌ Not implemented** |
+| Module 10 - Testing | Integration tests, event generation | **❌ Not implemented** |
+| Module 11 - Performance | Benchmarking, pprof, optimization | **❌ Not implemented** |
+| Module 12 - Load Testing | k6 scripts, load tests | **❌ Not implemented** |
+| Module 13 - Observability | CloudWatch, metrics, tracing | **❌ Not implemented** |
+| Module 14 - Resilience | Retry, circuit breaker, backoff | **❌ Not implemented** |
+| Module 15 - Dev Experience | Scripts, Makefile, local dev tools | **❌ Not implemented** |
+| Module 16 - IaC | Terraform, AWS resources | **❌ Not implemented** |
+| Module 17 - AWS Deployment | SAM/Serverless Framework | **❌ Not implemented** |
+| Module 18 - CI/CD | GitHub Actions, pipeline | **❌ Not implemented** |
+| Module 19 - Documentation | ADRs, Runbooks | **❌ Not implemented** |
+| Module 20 - Interview Prep | System design practice | **❌ Not implemented** |
+| Module 21 - CV & LinkedIn | CV update | **❌ Not implemented** |
 
-## ❌ Componente Faltante: Event Generator
+## ❌ Missing Component: Event Generator
 
-**Estado según roadmap:** 
-- Línea 406: "- [ ] Implementar event generator"
-- Línea 1130: "event-generator/" en estructura esperada
+**Status according to roadmap:** 
+- Line 406: "- [ ] Implement event generator"
+- Line 1130: "event-generator/" in expected structure
 
-**Estado actual:**
-- ❌ No existe el directorio `event-generator/`
-- ❌ No hay implementación de event generator
+**Current status:**
+- ❌ `event-generator/` directory doesn't exist
+- ❌ No event generator implementation
 
-**Importancia:**
-- El event generator es clave para el flujo completo de eventos
-- Necesario para testing y load testing
-- Parte central de la arquitectura según roadmap
+**Importance:**
+- Event generator is key for complete event flow
+- Necessary for testing and load testing
+- Central part of architecture according to roadmap
 
-## 📊 Progreso Real
+## 📊 Actual Progress
 
-**Módulos Core Completados:** 8/21 (38%)
-**Módulos Infraestructura Pendientes:** 13/21 (62%)
+**Core Modules Completed:** 8/21 (38%)
+**Infrastructure Modules Pending:** 13/21 (62%)
 
-## 🎯 Estrategia Recomendada
+## 🎯 Recommended Strategy
 
-Dado que el roadmap original es muy ambicioso (21 módulos), propongo:
+Given that the original roadmap is very ambitious (21 modules), I propose:
 
-### Opción 1: Foco en MVP Funcional ✅ (Recomendado)
-1. **Implementar Event Generator** - componente faltante clave
-2. **Módulo 9 simplificado** - MiniStack básico para validar integración
-3. **Módulo 10 simplificado** - Load testing básico con k6
-4. **Documentar** - qué quedó pendiente del roadmap original
+### Option 1: Focus on Functional MVP ✅ (Recommended)
+1. **Implement Event Generator** - key missing component
+2. **Simplified Module 9** - Basic MiniStack to validate integration
+3. **Simplified Module 10** - Basic load testing with k6
+4. **Document** - what remains from original roadmap
 
-**Ventajas:**
-- Sistema funcional completo
-- Métricas reales para CV
-- Proyecto defendible en entrevistas
+**Advantages:**
+- Complete functional system
+- Real metrics for CV
+- Project defensible in interviews
 
-### Opción 2: Seguir Roadmap Original
-Continuar con los 13 módulos restantes en orden
+### Option 2: Follow Original Roadmap
+Continue with the remaining 13 modules in order
 
-**Desventajas:**
-- Muchos módulos son infraestructura pesada (CI/CD, IaC, etc.)
-- No agregan valor al CV de inmediato
-- Perdería tiempo en configuración vs funcionalidad
+**Disadvantages:**
+- Many modules are heavy infrastructure (CI/CD, IaC, etc.)
+- Don't add immediate value to CV
+- Would lose time on configuration vs functionality
 
-## 🚀 Próximos Pasos Recomendados
+## 🚀 Recommended Next Steps
 
-1. **Event Generator** - Crear cmd/event-generator
-2. **MiniStack Básico** - LocalStack para DynamoDB/Kinesis local
-3. **Load Testing** - k6 scripts para medir performance
-4. **Documentación Final** - Resumen de arquitectura y decisiones
+1. **Event Generator** - Create cmd/event-generator
+2. **Basic MiniStack** - LocalStack for local DynamoDB/Kinesis
+3. **Load Testing** - k6 scripts to measure performance
+4. **Final Documentation** - Architecture and decisions summary
 
-¿Qué enfoque prefieres?
+Which approach do you prefer?

@@ -1,21 +1,21 @@
-# Kinesis - Decisiones de Implementación
+# Kinesis - Implementation Decisions
 
-## Módulo 6 — Event Processing con Kinesis
+## Module 6 — Event Processing with Kinesis
 
-### Objetivo
+### Objective
 
-Implementar procesamiento de eventos en tiempo real usando AWS Kinesis Data Streams.
+Implement real-time event processing using AWS Kinesis Data Streams.
 
-### ¿Qué es Kinesis Data Streams?
+### What is Kinesis Data Streams?
 
-**AWS Kinesis Data Streams** es un servicio de streaming de datos en tiempo real que:
+**AWS Kinesis Data Streams** is a real-time data streaming service that:
 
-- **Recibe** eventos de múltiples fuentes (productores)
-- **Almacena** eventos temporalmente (hasta 365 días)
-- **Permite** que múltiples consumidores lean los eventos
-- **Escala** automáticamente según el volumen de datos
+- **Receives** events from multiple sources (producers)
+- **Stores** events temporarily (up to 365 days)
+- **Allows** multiple consumers to read events
+- **Scales** automatically based on data volume
 
-### Arquitectura del Sistema con Kinesis
+### System Architecture with Kinesis
 
 ```text
 Ecommerce / Event Generator
@@ -34,39 +34,39 @@ Ecommerce / Event Generator
       DynamoDB
 ```
 
-### Diseño del Stream de Kinesis
+### Kinesis Stream Design
 
-#### Configuración del Stream
+#### Stream Configuration
 
-**Nombre del stream**: `recommendation-events`
+**Stream name**: `recommendation-events`
 
-**Configuración inicial:**
-- **Shards**: 1 (para desarrollo)
-- **Retention period**: 24 horas
+**Initial configuration:**
+- **Shards**: 1 (for development)
+- **Retention period**: 24 hours
 - **Partition key**: `UserID`
 
-#### Decisión de Partition Key
+#### Partition Key Decision
 
-**Elección:** UserID como partition key
+**Choice:** UserID as partition key
 
-**Razones:**
-1. **Ordenamiento por usuario**: Todos los eventos de un usuario van al mismo shard
-2. **Evita condiciones de carrera**: Procesamiento secuencial por usuario
-3. **Distribución natural**: Si hay muchos usuarios, se distribuyen bien entre shards
-4. **Caso de uso principal**: Procesamiento de eventos por usuario
+**Reasons:**
+1. **User ordering**: All events from a user go to the same shard
+2. **Avoids race conditions**: Sequential processing per user
+3. **Natural distribution**: If there are many users, they distribute well across shards
+4. **Primary use case**: Event processing by user
 
 **Trade-offs:**
-- **Ventaja**: Procesamiento ordenado por usuario
-- **Desventaja**: Si un usuario es muy activo, puede sobrecargar un shard
-- **Mitigación**: Escalado automático de shards según throughput
+- **Advantage**: Ordered processing by user
+- **Disadvantage**: If a user is very active, it can overload a shard
+- **Mitigation**: Automatic shard scaling based on throughput
 
-### Implementación del Productor
+### Producer Implementation
 
 #### Producer
 
-**Ubicación**: `internal/infrastructure/streaming/kinesis/producer.go`
+**Location**: `internal/infrastructure/streaming/kinesis/producer.go`
 
-**Estructura:**
+**Structure:**
 ```go
 type Producer struct {
     client    *kinesis.Client
@@ -74,7 +74,7 @@ type Producer struct {
 }
 ```
 
-**Métodos:**
+**Methods:**
 
 ##### 1. PublishEvent
 ```go
@@ -84,15 +84,15 @@ func (p *Producer) PublishEvent(
 ) error
 ```
 
-**Implementación:**
-- Convierte evento a JSON
-- Usa `PutRecord` operation
-- Usa `UserID` como partition key
+**Implementation:**
+- Converts event to JSON
+- Uses `PutRecord` operation
+- Uses `UserID` as partition key
 
-**Analogía:**
-- Es como publicar un mensaje en una cola
-- Pero con partition key para distribución
-- Los eventos con mismo partition key van al mismo shard
+**Analogy:**
+- Like publishing a message to a queue
+- But with partition key for distribution
+- Events with same partition key go to the same shard
 
 ##### 2. PublishBatch
 ```go
@@ -102,23 +102,23 @@ func (p *Producer) PublishBatch(
 ) error
 ```
 
-**Implementación:**
-- Convierte múltiples eventos a JSON
-- Usa `PutRecords` operation
-- Soporta hasta 500 records por llamada
+**Implementation:**
+- Converts multiple events to JSON
+- Uses `PutRecords` operation
+- Supports up to 500 records per call
 
-**Ventajas:**
-- **Más eficiente**: Una llamada HTTP en lugar de muchas
-- **Límite**: Máximo 500 records por llamada
-- **Costo**: Menor número de API calls
+**Advantages:**
+- **More efficient**: One HTTP call instead of many
+- **Limit**: Maximum 500 records per call
+- **Cost**: Fewer API calls
 
-### Implementación del Consumidor
+### Consumer Implementation
 
 #### Consumer
 
-**Ubicación**: `internal/infrastructure/streaming/kinesis/consumer.go`
+**Location**: `internal/infrastructure/streaming/kinesis/consumer.go`
 
-**Estructura:**
+**Structure:**
 ```go
 type Consumer struct {
     client     *kinesis.Client
@@ -126,7 +126,7 @@ type Consumer struct {
 }
 ```
 
-**Métodos:**
+**Methods:**
 
 ##### 1. GetShardIterator
 ```go
@@ -137,14 +137,14 @@ func (c *Consumer) GetShardIterator(
 ) (string, error)
 ```
 
-**Implementación:**
-- Obtiene un "cursor" para leer eventos de un shard
-- El tipo de iterator determina desde dónde empezar
+**Implementation:**
+- Gets a "cursor" to read events from a shard
+- The iterator type determines where to start
 
 **Iterator Types:**
-- **TRIM_HORIZON**: Lee desde el evento más antiguo disponible
-- **LATEST**: Lee solo eventos nuevos (después del iterator)
-- **AT_SEQUENCE_NUMBER**: Lee desde un sequence number específico
+- **TRIM_HORIZON**: Reads from the oldest available event
+- **LATEST**: Reads only new events (after the iterator)
+- **AT_SEQUENCE_NUMBER**: Reads from a specific sequence number
 
 ##### 2. GetRecords
 ```go
@@ -155,15 +155,15 @@ func (c *Consumer) GetRecords(
 ) ([]event.Event, string, error)
 ```
 
-**Implementación:**
-- Lee eventos desde el shard iterator
-- Convierte JSON a eventos del dominio
-- Retorna eventos y el siguiente iterator
+**Implementation:**
+- Reads events from the shard iterator
+- Converts JSON to domain events
+- Returns events and the next iterator
 
 **Features:**
-- **Paginación**: Permite leer eventos secuencialmente
-- **Límite**: Máximo 1000 records por llamada
-- **Next iterator**: Para continuar reading
+- **Pagination**: Allows sequential event reading
+- **Limit**: Maximum 1000 records per call
+- **Next iterator**: To continue reading
 
 ##### 3. ListShards
 ```go
@@ -172,15 +172,15 @@ func (c *Consumer) ListShards(
 ) ([]string, error)
 ```
 
-**Implementación:**
-- Lista todos los shards del stream
-- Retorna IDs de shards
+**Implementation:**
+- Lists all shards in the stream
+- Returns shard IDs
 
-**Uso:**
-- Necesario para saber qué shards consumir
-- Útil para monitoreo y scaling
+**Usage:**
+- Necessary to know which shards to consume
+- Useful for monitoring and scaling
 
-### Configuración del Cliente Kinesis
+### Kinesis Client Configuration
 
 #### NewKinesisClient (AWS Real)
 
@@ -188,28 +188,28 @@ func (c *Consumer) ListShards(
 func NewKinesisClient(ctx context.Context, region string) (*kinesis.Client, error)
 ```
 
-**Características:**
-- Usa `config.LoadDefaultConfig` para cargar credenciales automáticamente
-- Busca credenciales en:
-  1. Variables de entorno (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-  2. Archivo ~/.aws/credentials
-  3. IAM roles (si está en EC2/Lambda)
-- **Uso**: Producción en AWS
+**Features:**
+- Uses `config.LoadDefaultConfig` to automatically load credentials
+- Looks for credentials in:
+  1. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+  2. ~/.aws/credentials file
+  3. IAM roles (if in EC2/Lambda)
+- **Usage**: Production in AWS
 
-#### NewLocalKinesisClient (Desarrollo Local)
+#### NewLocalKinesisClient (Local Development)
 
 ```go
 func NewLocalKinesisClient(ctx context.Context, endpoint string) (*kinesis.Client, error)
 ```
 
-**Características:**
-- Override del endpoint con `BaseEndpoint`
-- Apunta a local: `http://localhost:4566` (LocalStack)
-- **Uso**: Desarrollo con LocalStack
+**Features:**
+- Override endpoint with `BaseEndpoint`
+- Points to local: `http://localhost:4566` (LocalStack)
+- **Usage**: Development with LocalStack
 
-### Serialización JSON
+### JSON Serialization
 
-#### Tags en Event Entity
+#### Tags in Event Entity
 
 ```go
 type Event struct {
@@ -224,40 +224,40 @@ type Event struct {
 }
 ```
 
-**Propósito:**
-- Control explícito del mapeo JSON
-- Nombres snake_case para JSON (convención HTTP)
-- Nombres PascalCase en Go (convención Go)
+**Purpose:**
+- Explicit control of JSON mapping
+- Snake_case names for JSON (HTTP convention)
+- PascalCase names in Go (Go convention)
 
-**Sin tags vs Con tags:**
-- **Sin tags**: JSON tags sería eventID, eventType (no convención HTTP)
-- **Con tags**: event_id, event_type (convención HTTP estándar)
+**Without tags vs With tags:**
+- **Without tags**: JSON tags would be eventID, eventType (not HTTP convention)
+- **With tags**: event_id, event_type (standard HTTP convention)
 
-### Paquetes AWS SDK Instalados
+### Installed AWS SDK Packages
 
-1. **`github.com/aws/aws-sdk-go-v2/service/kinesis`**: Cliente específico de Kinesis
-2. **`github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream`**: Protocolo de streaming
+1. **`github.com/aws/aws-sdk-go-v2/service/kinesis`**: Kinesis specific client
+2. **`github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream`**: Streaming protocol
 
 ### Tests
 
-#### Estado Actual
+#### Current Status
 
-Los tests de Kinesis están en `Skip` porque:
+Kinesis tests are in `Skip` because:
 
-1. **SDK no usa interfaces**: El cliente Kinesis es un struct concreto
-2. **Mocking difícil**: No se puede mockear fácilmente sin wrappers
-3. **Tests de integración**: Requieren Kinesis Local o LocalStack
+1. **SDK doesn't use interfaces**: Kinesis client is a concrete struct
+2. **Difficult mocking**: Cannot easily mock without wrappers
+3. **Integration tests**: Require Kinesis Local or LocalStack
 
-#### Plan para Tests
+#### Test Plan
 
-Los tests de integración se implementarán en el **Módulo 9 - MiniStack** cuando configuremos:
-- Kinesis Local para testing
-- Tests end-to-end con Kinesis real
-- Validación de producer y consumer
+Integration tests will be implemented in **Module 9 - MiniStack** when we configure:
+- Kinesis Local for testing
+- End-to-end tests with real Kinesis
+- Validation of producer and consumer
 
-### Flujo de Trabajo del Sistema
+### System Workflow
 
-#### 1. Publicación de Eventos
+#### 1. Event Publishing
 ```text
 Ecommerce API
     |
@@ -274,7 +274,7 @@ Kinesis Producer
 Kinesis Stream (recommendation-events)
 ```
 
-#### 2. Consumo de Eventos
+#### 2. Event Consumption
 ```text
 Kinesis Stream
     |
@@ -282,7 +282,7 @@ Kinesis Stream
 Kinesis Consumer
     |
     v
-Worker Pool (Módulo 7)
+Worker Pool (Module 7)
     |
     v
 Recommendation Service
@@ -291,38 +291,38 @@ Recommendation Service
 DynamoDB
 ```
 
-### Trade-offs Considerados
+### Trade-offs Considered
 
 1. **Partition Key Strategy**
-   - **Elección**: UserID como partition key
-   - **Trade-off**: Ordenamiento por usuario vs distribución uniforme
-   - **Decisión**: Ordenamiento por usuario es más importante para el caso de uso
+   - **Choice**: UserID as partition key
+   - **Trade-off**: User ordering vs uniform distribution
+   - **Decision**: User ordering is more important for the use case
 
 2. **Single Record vs Batch**
-   - **Elección**: Ambos métodos disponibles
-   - **Trade-off**: Simplicidad vs eficiencia
-   - **Decisión**: Batch para alta throughput, single para baja latencia
+   - **Choice**: Both methods available
+   - **Trade-off**: Simplicity vs efficiency
+   - **Decision**: Batch for high throughput, single for low latency
 
 3. **JSON vs Binary Serialization**
-   - **Elección**: JSON para Kinesis
-   - **Trade-off**: Tamaño vs legibilidad
-   - **Decisión**: JSON es más legible y suficiente para este caso de uso
+   - **Choice**: JSON for Kinesis
+   - **Trade-off**: Size vs readability
+   - **Decision**: JSON is more readable and sufficient for this use case
 
-4. **Tests Unitarios vs Integración**
-   - **Elección**: Tests de integración en Módulo 9
-   - **Trade-off**: Cobertura temprana vs infraestructura real
-   - **Decisión**: Tests de integración con Kinesis Local son más valiosos
+4. **Unit vs Integration Tests**
+   - **Choice**: Integration tests in Module 9
+   - **Trade-off**: Early coverage vs real infrastructure
+   - **Decision**: Integration tests with Kinesis Local are more valuable
 
-### Validaciones Realizadas
+### Validations Performed
 
-- [x] Código compila sin errores
-- [x] Todos los tests existentes pasan
-- [x] JSON tags en Event entity
-- [x] Producer implementado (single y batch)
-- [x] Consumer implementado (GetRecords, GetShardIterator, ListShards)
-- [x] Cliente Kinesis para AWS y local
-- [x] Documentación de decisiones
+- [x] Code compiles without errors
+- [x] All existing tests pass
+- [x] JSON tags in Event entity
+- [x] Producer implemented (single and batch)
+- [x] Consumer implemented (GetRecords, GetShardIterator, ListShards)
+- [x] Kinesis client for AWS and local
+- [x] Documentation of decisions
 
-### Estado del Módulo 6
+### Module 6 Status
 
-- [x] Cerrado (tests de integración pendientes en Módulo 9)
+- [x] Closed (integration tests pending in Module 9)

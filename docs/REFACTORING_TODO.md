@@ -1,45 +1,45 @@
-# Refactorizaciones Pendientes
+# Pending Refactorings
 
-Este documento contiene refactorizaciones identificadas pero no implementadas todavía, priorizadas por impacto y complejidad.
+This document contains identified but not yet implemented refactorings, prioritized by impact and complexity.
 
-## Prioridad Alta 🔴
+## High Priority 🔴
 
-### 1. Mover Composition Root a `internal/app/composition/`
+### 1. Move Composition Root to `internal/app/composition/`
 
-**Estado:** Identificado pero no implementado
+**Status:** Identified but not implemented
 
-**Ubicación actual:** `internal/infrastructure/composition/root.go`
+**Current location:** `internal/infrastructure/composition/root.go`
 
-**Ubicación sugerida:** `internal/app/composition/root.go`
+**Suggested location:** `internal/app/composition/root.go`
 
-**Razón:**
-- Composition root es *application assembly*, no infraestructura AWS
-- Más semánticamente correcto que "infrastructure"
-- Sigue mejor el patrón de Clean Architecture
+**Reason:**
+- Composition root is *application assembly*, not AWS infrastructure
+- More semantically correct than "infrastructure"
+- Better follows Clean Architecture pattern
 
-**Impacto:** 
-- Cambio de ubicación, sin cambio funcional
-- Mejor claridad arquitectónica
-- Requiere actualizar imports en cmd/api y cmd/lambda
+**Impact:** 
+- Location change, no functional change
+- Better architectural clarity
+- Requires updating imports in cmd/api and cmd/lambda
 
-**Complejidad:** Baja (mover archivo y actualizar imports)
+**Complexity:** Low (move file and update imports)
 
 ---
 
-## Prioridad Media 🟡
+## Medium Priority 🟡
 
-### 2. Mejorar Routing de Lambda Handler
+### 2. Improve Lambda Handler Routing
 
-**Estado:** Funcional pero puede mejorarse
+**Status:** Functional but can be improved
 
-**Ubicación:** `cmd/lambda/main.go` - HandleRequest method
+**Location:** `cmd/lambda/main.go` - HandleRequest method
 
-**Problema actual:**
-- Switch/case verboso para routing
-- Código duplicado de respuesta HTTP
-- No escalable fácilmente
+**Current problem:**
+- Verbose switch/case for routing
+- Duplicated HTTP response code
+- Not easily scalable
 
-**Sugerencia 1 - Router Pattern:**
+**Suggestion 1 - Router Pattern:**
 ```go
 type Route struct {
     Path    string
@@ -54,7 +54,7 @@ routes := []Route{
 }
 ```
 
-**Sugerencia 2 - Map de Handlers:**
+**Suggestion 2 - Handler Map:**
 ```go
 handlers := map[string]func(ctx context.Context, body string) (events.APIGatewayProxyResponse, error){
     "GET_/health": h.handleHealth,
@@ -63,19 +63,19 @@ handlers := map[string]func(ctx context.Context, body string) (events.APIGateway
 }
 ```
 
-**Impacto:** Mejor maintainability si crece el número de rutas
+**Impact:** Better maintainability if number of routes grows
 
-**Complejidad:** Media (refactorizar estructura de routing)
+**Complexity:** Medium (refactor routing structure)
 
 ---
 
-### 3. Agregar Helper para Respuestas HTTP
+### 3. Add HTTP Response Helpers
 
-**Estado:** Código duplicado en Lambda handlers
+**Status:** Duplicated code in Lambda handlers
 
-**Ubicación:** `cmd/lambda/main.go` - múltiples métodos
+**Location:** `cmd/lambda/main.go` - multiple methods
 
-**Problema actual:**
+**Current problem:**
 ```go
 return events.APIGatewayProxyResponse{
     StatusCode: 200,
@@ -84,7 +84,7 @@ return events.APIGatewayProxyResponse{
 }, nil
 ```
 
-**Sugerencia:**
+**Suggestion:**
 ```go
 func jsonResponse(statusCode int, body interface{}) events.APIGatewayProxyResponse {
     data, _ := json.Marshal(body)
@@ -100,21 +100,21 @@ func jsonError(statusCode int, message string) events.APIGatewayProxyResponse {
 }
 ```
 
-**Impacto:** Reducción de código duplicado
+**Impact:** Code duplication reduction
 
-**Complejidad:** Baja (agregar helpers)
+**Complexity:** Low (add helpers)
 
 ---
 
-## Prioridad Baja 🟢
+## Low Priority 🟢
 
-### 4. Extraer Validación de Request
+### 4. Extract Request Validation
 
-**Estado:** Validación inline en cada handler
+**Status:** Inline validation in each handler
 
-**Ubicación:** `cmd/lambda/main.go` - handleGetRecommendations, handleProcessEvent, etc.
+**Location:** `cmd/lambda/main.go` - handleGetRecommendations, handleProcessEvent, etc.
 
-**Problema actual:**
+**Current problem:**
 ```go
 if userID == "" {
     return events.APIGatewayProxyResponse{
@@ -125,7 +125,7 @@ if userID == "" {
 }
 ```
 
-**Sugerencia:**
+**Suggestion:**
 ```go
 func validateUserID(userID string) error {
     if userID == "" {
@@ -135,19 +135,19 @@ func validateUserID(userID string) error {
 }
 ```
 
-**Impacto:** Mejor testability y reutilización
+**Impact:** Better testability and reusability
 
-**Complejidad:** Baja (extraer funciones de validación)
+**Complexity:** Low (extract validation functions)
 
 ---
 
-### 5. Implementar Error Handling Centralizado
+### 5. Implement Centralized Error Handling
 
-**Estado:** Error handling disperso en cada handler
+**Status:** Dispersed error handling in each handler
 
-**Ubicación:** Múltiples handlers en cmd/lambda/main.go
+**Location:** Multiple handlers in cmd/lambda/main.go
 
-**Problema actual:**
+**Current problem:**
 ```go
 if err != nil {
     h.Logger.Error("failed to get recommendations", slog.String("error", err.Error()))
@@ -159,7 +159,7 @@ if err != nil {
 }
 ```
 
-**Sugerencia:**
+**Suggestion:**
 ```go
 func (h *LambdaHandler) handleError(err error, context string) events.APIGatewayProxyResponse {
     h.Logger.Error(context, slog.String("error", err.Error()))
@@ -180,23 +180,23 @@ func (h *LambdaHandler) handleError(err error, context string) events.APIGateway
 }
 ```
 
-**Impacto:** Mejor consistencia de respuestas de error
+**Impact:** Better error response consistency
 
-**Complejidad:** Media (requiere análisis de tipos de error)
+**Complexity:** Medium (requires error type analysis)
 
 ---
 
-### 6. Agregar Context Propagation
+### 6. Add Context Propagation
 
-**Estado:** Context no se propaga completamente
+**Status:** Context not fully propagated
 
-**Ubicación:** Varios handlers en cmd/lambda/main.go
+**Location:** Various handlers in cmd/lambda/main.go
 
-**Problema actual:**
-- Request ID no se propaga desde API Gateway
-- No hay tracing distribuido
+**Current problem:**
+- Request ID not propagated from API Gateway
+- No distributed tracing
 
-**Sugerencia:**
+**Suggestion:**
 ```go
 func (h *LambdaHandler) HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
     // Extract request ID from headers
@@ -208,104 +208,104 @@ func (h *LambdaHandler) HandleRequest(ctx context.Context, req events.APIGateway
     ctx = context.WithValue(ctx, "requestID", requestID)
     ctx = h.Logger.With("request_id", requestID)
     
-    // Resto del código con ctx enriquecido
+    // Rest of code with enriched ctx
 }
 ```
 
-**Impacto:** Mejor observabilidad y debugging
+**Impact:** Better observability and debugging
 
-**Complejidad:** Media (requiere agregar tracing)
-
----
-
-## Detalles de Implementación Menores ⚪
-
-### 7. Eliminar Código Dead
-
-**Estado:** Posible código no utilizado después de refactorizaciones
-
-**Lugares a revisar:**
-- Verificar si hay imports no utilizados
-- Verificar si hay funciones no utilizadas después de refactorizaciones
-- Limpiar tests que ya no aplican
-
-**Impacto:** Limpieza de código
-
-**Complejidad:** Baja (análisis y limpieza)
+**Complexity:** Medium (requires adding tracing)
 
 ---
 
-### 8. Mejorar Naming de Variables
+## Minor Implementation Details ⚪
 
-**Estado:** Algunos nombres podrían ser más descriptivos
+### 7. Remove Dead Code
 
-**Ejemplos:**
-- `eventList` podría ser `events` (ya se usa en domain)
-- `app` podría ser `application` en algunos contextos
+**Status:** Possible unused code after refactorings
 
-**Impacto:** Mejor legibilidad
+**Places to review:**
+- Check for unused imports
+- Check for unused functions after refactorings
+- Clean up tests that no longer apply
 
-**Complejidad:** Baja (renombrar variables)
+**Impact:** Code cleanup
+
+**Complexity:** Low (analysis and cleanup)
 
 ---
 
-## Decisiones Pendientes
+### 8. Improve Variable Naming
 
-### 9. Usar gin-gonic/lambdaadapter
+**Status:** Some names could be more descriptive
 
-**Estado:** No investigado
+**Examples:**
+- `eventList` could be `events` (already used in domain)
+- `app` could be `application` in some contexts
 
-**Descripción:** Evaluar si usar `github.com/awslabs/aws-lambda-go-api-proxy` para integrar Gin con Lambda
+**Impact:** Better readability
 
-**Ventajas:**
-- Reutilizar código Gin exacto
-- No necesitar adaptador manual
+**Complexity:** Low (rename variables)
+
+---
+
+## Pending Decisions
+
+### 9. Use gin-gonic/lambdaadapter
+
+**Status:** Not investigated
+
+**Description:** Evaluate using `github.com/awslabs/aws-lambda-go-api-proxy` to integrate Gin with Lambda
+
+**Advantages:**
+- Reuse exact Gin code
+- No need for manual adapter
 - Proven solution
 
-**Desventajas:**
-- Dependencia adicional
+**Disadvantages:**
+- Additional dependency
 - Possible overhead
-- Less control sobre request/response
+- Less control over request/response
 
-**Impacto:** Simplificar código Lambda
+**Impact:** Simplify Lambda code
 
-**Complejidad:** Media (evaluar librería y refactorizar)
+**Complexity:** Medium (evaluate library and refactor)
 
 ---
 
-## Criterios para Priorización
+## Prioritization Criteria
 
-**Alta Prioridad 🔴:**
-- Impacto arquitectónico significativo
-- Mejora maintainability a largo plazo
-- Baja complejidad de implementación
+**High Priority 🔴:**
+- Significant architectural impact
+- Improves long-term maintainability
+- Low implementation complexity
 
-**Media Prioridad 🟡:**
-- Mejora code quality significativamente
-- Reducción de duplicación
-- Complejidad media
+**Medium Priority 🟡:**
+- Significantly improves code quality
+- Reduces duplication
+- Medium complexity
 
-**Baja Prioridad 🟢:**
-- Mejoras cosméticas
-- Optimizaciones menores
+**Low Priority 🟢:**
+- Cosmetic improvements
+- Minor optimizations
 - Nice-to-have features
 
 ---
 
-## Proceso para Implementar Refactorizaciones
+## Process for Implementing Refactorings
 
-1. **Crear rama:** `refactor/nombre-refactorizacion`
-2. **Implementar:** Hacer los cambios propuestos
-3. **Tests:** Asegurar que todos los tests pasan
-4. **Documentar:** Actualizar documentación relevante
-5. **Commit:** Con mensaje descriptivo
-6. **Merge:** A main después de revisión
+1. **Create branch:** `refactor/refactoring-name`
+2. **Implement:** Make the proposed changes
+3. **Tests:** Ensure all tests pass
+4. **Document:** Update relevant documentation
+5. **Commit:** With descriptive message
+6. **Merge:** To main after review
 
 ---
 
-## Notas
+## Notes
 
-- Este documento es vivo - agregar nuevas refactorizaciones según se identifiquen
-- Antes de implementar, evaluar si realmente agrega valor
-- Considerar el costo/beneficio de cada refactorización
-- Priorizar funcionalidad sobre perfección del código
+- This document is live - add new refactorings as they are identified
+- Before implementing, evaluate if it really adds value
+- Consider cost/benefit of each refactoring
+- Prioritize functionality over perfection
