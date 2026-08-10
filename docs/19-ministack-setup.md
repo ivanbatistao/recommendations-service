@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project uses **LocalStack** to simulate AWS services locally, enabling development and testing without a real AWS account.
+This project uses **MiniStack** to simulate AWS services locally, enabling development and testing without a real AWS account. MiniStack is a free, MIT-licensed alternative to LocalStack that provides 60+ AWS services without requiring a license key.
 
 ## Simulated Services
 
@@ -16,20 +16,20 @@ This project uses **LocalStack** to simulate AWS services locally, enabling deve
 
 ## Quick Start
 
-### 1. Start LocalStack
+### 1. Start MiniStack
 
 ```bash
-docker-compose up -d localstack
+docker-compose up -d ministack
 ```
 
-This will start LocalStack at `http://localhost:4566` with DynamoDB and Kinesis enabled.
+This will start MiniStack at `http://localhost:4566` with DynamoDB and Kinesis enabled.
 
 ### 2. Initialize AWS Resources
 
 Run the initialization script to create the DynamoDB table and Kinesis stream:
 
 ```bash
-./scripts/init-localstack.sh
+./scripts/init-ministack.sh
 ```
 
 This will create:
@@ -39,7 +39,7 @@ This will create:
 ### 3. Verify Functionality
 
 ```bash
-./scripts/test-localstack.sh
+./scripts/test-ministack.sh
 ```
 
 This will execute connectivity tests with both services.
@@ -50,7 +50,7 @@ This will execute connectivity tests with both services.
 docker-compose up recommendation-service
 ```
 
-The application will automatically connect to LocalStack using the configured environment variables.
+The application will automatically connect to MiniStack using the configured environment variables.
 
 ## Configuration
 
@@ -59,17 +59,17 @@ The application will automatically connect to LocalStack using the configured en
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
 | `AWS_REGION` | `us-east-1` | Simulated AWS region |
-| `AWS_ACCESS_KEY_ID` | `test` | Fake credential for LocalStack |
-| `AWS_SECRET_ACCESS_KEY` | `test` | Fake credential for LocalStack |
-| `DYNAMODB_ENDPOINT` | `http://localstack:4566` | Local DynamoDB endpoint |
-| `KINESIS_ENDPOINT` | `http://localstack:4566` | Local Kinesis endpoint |
+| `AWS_ACCESS_KEY_ID` | `test` | Fake credential for MiniStack |
+| `AWS_SECRET_ACCESS_KEY` | `test` | Fake credential for MiniStack |
+| `DYNAMODB_ENDPOINT` | `http://ministack:4566` | Local DynamoDB endpoint |
+| `KINESIS_ENDPOINT` | `http://ministack:4566` | Local Kinesis endpoint |
 | `USE_LOCAL_AWS` | `true` | Use local AWS services |
 
 ### Docker Compose
 
 ```yaml
-localstack:
-  image: localstack/localstack:latest
+ministack:
+  image: ministackorg/ministack
   ports:
     - "4566:4566"
   environment:
@@ -83,11 +83,11 @@ localstack:
 
 ### Local Development
 
-The application automatically detects when to use LocalStack based on environment variables:
+The application automatically detects when to use MiniStack based on environment variables:
 
 ```go
 if config.DynamoDBEndpoint != "" {
-    // Use local DynamoDB (LocalStack)
+    // Use local DynamoDB (MiniStack)
     client, err = dynamodb.NewLocalDynamoDBClient(
         context.Background(),
         config.DynamoDBEndpoint,
@@ -101,7 +101,7 @@ if config.DynamoDBEndpoint != "" {
 }
 ```
 
-### Event Generator with LocalStack
+### Event Generator with MiniStack
 
 To use the Event Generator with local Kinesis:
 
@@ -111,14 +111,14 @@ To use the Event Generator with local Kinesis:
 
 ## Available Scripts
 
-### `scripts/init-localstack.sh`
-Initializes AWS resources in LocalStack:
+### `scripts/init-ministack.sh`
+Initializes AWS resources in MiniStack:
 - Creates DynamoDB table
 - Creates Kinesis stream
 - Waits for resources to be active
 
-### `scripts/test-localstack.sh`
-Tests connectivity with LocalStack:
+### `scripts/test-ministack.sh`
+Tests connectivity with MiniStack:
 - Lists DynamoDB tables
 - Describes Recommendations table
 - Lists Kinesis streams
@@ -126,24 +126,24 @@ Tests connectivity with LocalStack:
 
 ## Troubleshooting
 
-### LocalStack won't start
+### MiniStack won't start
 ```bash
 # Check logs
-docker-compose logs localstack
+docker-compose logs ministack
 
 # Restart
-docker-compose restart localstack
+docker-compose restart ministack
 ```
 
 ### Table or stream don't exist
 ```bash
 # Re-initialize resources
-./scripts/init-localstack.sh
+./scripts/init-ministack.sh
 ```
 
 ### Connection error
 ```bash
-# Verify LocalStack is running
+# Verify MiniStack is running
 curl http://localhost:4566
 
 # Check if port 4566 is in use
@@ -151,44 +151,42 @@ lsof -i :4566
 ```
 
 ### AWS permissions
-LocalStack ignores real credentials but requires valid values:
+MiniStack ignores real credentials but requires valid values:
 ```bash
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
 export AWS_DEFAULT_REGION=us-east-1
 ```
 
-## Local Data
+## MiniStack vs LocalStack
 
-LocalStack data is saved in `./localstack_data/`:
-```yaml
-volumes:
-  - "./localstack_data:/tmp/localstack/data"
-```
+MiniStack is a free alternative to LocalStack with the following advantages:
 
-To clean data:
-```bash
-rm -rf localstack_data/*
-docker-compose restart localstack
-```
+- **Free forever**: No license key required
+- **No telemetry**: No data collection
+- **Drop-in replacement**: Compatible with existing AWS tools
+- **60+ services**: More AWS services than LocalStack free tier
+- **Real databases**: RDS runs actual Postgres/MySQL containers
+- **Multi-account & multi-region**: Supports multiple AWS accounts and regions
 
 ## Limitations
 
-LocalStack is not 100% compatible with real AWS. Known limitations:
+MiniStack aims for high compatibility with AWS but has some limitations:
 
-- Some advanced DynamoDB features are not implemented
-- Kinesis has some behavioral differences
+- Some advanced AWS features may not be fully implemented
+- Performance may differ from real AWS
 - No costs, but also no availability guarantees
 
 ## Next Steps
 
-Once LocalStack is running:
+Once MiniStack is running:
 1. ✅ Event Generator can send events to local Kinesis
 2. ✅ Application can store recommendations in local DynamoDB
 3. ✅ Ready for load testing with k6
 
 ## References
 
-- [LocalStack Documentation](https://docs.localstack.cloud/)
+- [MiniStack Documentation](https://ministack.org)
+- [MiniStack GitHub](https://github.com/ministackorg/ministack)
 - [DynamoDB Local](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html)
 - [Kinesis Developer Guide](https://docs.aws.amazon.com/streams/latest/dev/introduction.html)

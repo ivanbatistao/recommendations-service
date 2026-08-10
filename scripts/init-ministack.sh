@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# LocalStack initialization script
+# MiniStack initialization script
 # Creates DynamoDB table and Kinesis stream for local development
 
 set -e
 
-LOCALSTACK_ENDPOINT="http://localhost:4566"
+MINISTACK_ENDPOINT="http://localhost:4566"
 AWS_REGION="us-east-1"
 TABLE_NAME="Recommendations"
 STREAM_NAME="recommendations-events"
 
-echo "🚀 Initializing LocalStack resources..."
+echo "🚀 Initializing MiniStack resources..."
 
 # Create DynamoDB table
 echo "📦 Creating DynamoDB table: $TABLE_NAME"
@@ -19,7 +19,7 @@ aws dynamodb create-table \
   --attribute-definitions AttributeName=UserID,AttributeType=S \
   --key-schema AttributeName=UserID,KeyType=HASH \
   --billing-mode PAY_PER_REQUEST \
-  --endpoint-url $LOCALSTACK_ENDPOINT \
+  --endpoint-url $MINISTACK_ENDPOINT \
   --region $AWS_REGION \
   || echo "Table might already exist"
 
@@ -27,7 +27,7 @@ aws dynamodb create-table \
 echo "⏳ Waiting for table to be active..."
 aws dynamodb wait table-exists \
   --table-name $TABLE_NAME \
-  --endpoint-url $LOCALSTACK_ENDPOINT \
+  --endpoint-url $MINISTACK_ENDPOINT \
   --region $AWS_REGION
 
 echo "✅ DynamoDB table is ready"
@@ -37,7 +37,7 @@ echo "🌊 Creating Kinesis stream: $STREAM_NAME"
 aws kinesis create-stream \
   --stream-name $STREAM_NAME \
   --shard-count 1 \
-  --endpoint-url $LOCALSTACK_ENDPOINT \
+  --endpoint-url $MINISTACK_ENDPOINT \
   --region $AWS_REGION \
   || echo "Stream might already exist"
 
@@ -45,7 +45,7 @@ aws kinesis create-stream \
 echo "⏳ Waiting for stream to be active..."
 aws kinesis wait stream-exists \
   --stream-name $STREAM_NAME \
-  --endpoint-url $LOCALSTACK_ENDPOINT \
+  --endpoint-url $MINISTACK_ENDPOINT \
   --region $AWS_REGION
 
 echo "✅ Kinesis stream is ready"
@@ -54,11 +54,11 @@ echo "✅ Kinesis stream is ready"
 echo ""
 echo "📋 Current resources:"
 echo "DynamoDB Tables:"
-aws dynamodb list-tables --endpoint-url $LOCALSTACK_ENDPOINT --region $AWS_REGION
+aws dynamodb list-tables --endpoint-url $MINISTACK_ENDPOINT --region $AWS_REGION
 
 echo ""
 echo "Kinesis Streams:"
-aws kinesis list-streams --endpoint-url $LOCALSTACK_ENDPOINT --region $AWS_REGION
+aws kinesis list-streams --endpoint-url $MINISTACK_ENDPOINT --region $AWS_REGION
 
 echo ""
-echo "✨ LocalStack initialization complete!"
+echo "✨ MiniStack initialization complete!"
