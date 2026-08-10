@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/lambda"
 )
 
 func TestLambdaHandler_HandleHealth(t *testing.T) {
-	handler := NewLambdaHandler()
+	handler := lambda.NewLambdaHandler()
 
 	req := events.APIGatewayProxyRequest{
 		Path:       "/health",
@@ -37,7 +38,7 @@ func TestLambdaHandler_HandleHealth(t *testing.T) {
 }
 
 func TestLambdaHandler_HandleGetRecommendations(t *testing.T) {
-	handler := NewLambdaHandler()
+	handler := lambda.NewLambdaHandler()
 
 	req := events.APIGatewayProxyRequest{
 		Path:           "/recommendations/user-123",
@@ -66,7 +67,7 @@ func TestLambdaHandler_HandleGetRecommendations(t *testing.T) {
 }
 
 func TestLambdaHandler_HandleProcessEvent(t *testing.T) {
-	handler := NewLambdaHandler()
+	handler := lambda.NewLambdaHandler()
 
 	eventData := map[string]interface{}{
 		"event_id":   "event-1",
@@ -109,7 +110,7 @@ func TestLambdaHandler_HandleProcessEvent(t *testing.T) {
 }
 
 func TestLambdaHandler_HandleGenerateRecommendations(t *testing.T) {
-	handler := NewLambdaHandler()
+	handler := lambda.NewLambdaHandler()
 
 	requestData := map[string]interface{}{
 		"user_id": "user-456",
@@ -154,7 +155,7 @@ func TestLambdaHandler_HandleGenerateRecommendations(t *testing.T) {
 }
 
 func TestLambdaHandler_HandleNotFound(t *testing.T) {
-	handler := NewLambdaHandler()
+	handler := lambda.NewLambdaHandler()
 
 	req := events.APIGatewayProxyRequest{
 		Path:       "/unknown",
