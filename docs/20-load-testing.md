@@ -161,7 +161,8 @@ k6 run loadtests/api-load-test.js
 - **1.04ms** under normal load conditions
 
 **Maximum Sustained Throughput:**
-- **141.78 RPS** with 100 concurrent VUs
+- **602.95 RPS** with 200 concurrent VUs (incremental stress test)
+- **141.78 RPS** with 100 concurrent VUs (stress test)
 
 **Peak Throughput:**
 - **6728.51 RPS** during spike conditions

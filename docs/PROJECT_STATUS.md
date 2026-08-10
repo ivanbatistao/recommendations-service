@@ -70,7 +70,7 @@
 
 ### Performance Summary
 - **Best Performance (Minimum p95)**: 1.04ms under normal load
-- **Maximum Sustained Throughput**: 141.78 RPS with 100 concurrent VUs
+- **Maximum Sustained Throughput**: 602.95 RPS with 200 concurrent VUs
 - **Peak Throughput**: 6728.51 RPS during spike conditions
 - **All targets exceeded** by exceptional margins (119x-240x faster)
 - **Zero error rate** across all test scenarios
