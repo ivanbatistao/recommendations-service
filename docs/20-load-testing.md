@@ -37,7 +37,7 @@ Ver [k6 Installation Guide](https://k6.io/docs/getting-started/installation/)
 - Duración: 70 segundos
 
 **Thresholds:**
-- 95% de requests < 500ms
+- 95% de requests < 100ms
 - Error rate < 1%
 
 **Ejecución:**
@@ -56,7 +56,7 @@ Ver [k6 Installation Guide](https://k6.io/docs/getting-started/installation/)
 - 100 usuarios concurrentes en peak
 
 **Thresholds:**
-- 95% de requests < 1s
+- 95% de requests < 100ms
 - Error rate < 5%
 
 **Ejecución:**
@@ -64,7 +64,37 @@ Ver [k6 Installation Guide](https://k6.io/docs/getting-started/installation/)
 ./scripts/run-load-tests.sh stress-test http://localhost:8080
 ```
 
-### 3. Spike Test (`spike-test.js`)
+### 3. Incremental Stress Test (`incremental-stress-test.js`)
+
+**Propósito:** Prueba de estrés incremental para encontrar máximo throughput sostenido
+
+**Escenario:**
+- Health check + get recommendations + process events
+- 10-50-100-150-200-200-0 usuarios (ramp up incremental)
+- Duración: 3m20s
+- 200 usuarios concurrentes en peak (safe limit)
+- Sleep reducido a 0.5s para mayor throughput
+
+**Thresholds:**
+- 95% de requests < 1000ms (más laxo para alta carga)
+- Error rate < 5%
+
+**Ejecución:**
+```bash
+k6 run loadtests/incremental-stress-test.js
+```
+
+**Resultados:**
+- **Latency p(95)**: 2.01ms (target: 1000ms) - **498x faster than target**
+- **Average**: 976.31µs
+- **Maximum**: 17.95ms
+- **Throughput**: 602.95 RPS (sustained)
+- **Total Requests**: 120,810
+- **Total Iterations**: 40,270
+- **Error Rate**: 0.00%
+- **Checks**: 100% passed
+
+### 4. Spike Test (`spike-test.js`)
 
 **Propósito:** Prueba de tráfico repentino (spike)
 
@@ -146,6 +176,17 @@ k6 run loadtests/api-load-test.js
 - **Throughput**: 141.78 RPS (sustained)
 - **Error Rate**: 0.00%
 - **Checks**: 100% passed
+
+**Incremental Stress Test (Maximum Sustained Throughput - 200 VUs):**
+- **Latency p(95)**: 2.01ms (target: 1000ms) - **498x faster than target**
+- **Average**: 976.31µs
+- **Maximum**: 17.95ms
+- **Throughput**: 602.95 RPS (sustained)
+- **Total Requests**: 120,810
+- **Total Iterations**: 40,270
+- **Error Rate**: 0.00%
+- **Checks**: 100% passed
+- **Stability**: Perfectly stable with linear scalability from 10 to 200 VUs
 
 **Spike Test (Extreme Load - 100 VUs spike):**
 - **Latency p(95)**: 16.83ms (target: 2000ms) - **119x faster than target**
