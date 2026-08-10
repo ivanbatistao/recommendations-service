@@ -127,35 +127,35 @@ k6 run loadtests/api-load-test.js
 
 ### Resultados para CV
 
-Según el diseño del sistema, se esperan las siguientes métricas:
+According to the system design, the following metrics are expected:
 
-**Latencia de Get Recommendations:**
-- Target: < 500ms (p95)
-- Stress: < 1s (p95)
-- Spike: < 2s (p95)
+**Get Recommendations Latency:**
+- Target: < 250ms (p95)
+- Stress: < 500ms (p95)
+- Spike: < 500ms (p95)
 
 **Throughput:**
-- API Load: ~100 RPS con 10 VUs
-- Stress: ~200 RPS con 100 VUs
-- Spike: ~150 RPS durante spike
+- API Load: ~100 RPS with 10 VUs
+- Stress: ~200 RPS with 100 VUs
+- Spike: ~150 RPS during spike
 
 **Error Rate:**
 - Normal: < 1%
 - Stress: < 5%
 - Spike: < 10%
 
-## Integración con LocalStack
+## Integration with MiniStack
 
-Para pruebas de carga con LocalStack:
+For load testing with MiniStack:
 
 ```bash
-# 1. Iniciar LocalStack
-docker-compose up -d localstack
+# 1. Start MiniStack
+docker-compose up -d ministack
 
-# 2. Inicializar recursos
-./scripts/init-localstack.sh
+# 2. Initialize resources
+./scripts/init-ministack.sh
 
-# 3. Iniciar aplicación
+# 3. Start application
 docker-compose up recommendation-service
 
 # 4. Ejecutar load tests

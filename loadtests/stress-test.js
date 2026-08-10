@@ -14,7 +14,7 @@ export const options = {
     { duration: '5s', target: 0 },    // Ramp down to 0
   ],
   thresholds: {
-    http_req_duration: ['p(95)<1000'], // 95% of requests must complete below 1s
+    http_req_duration: ['p(95)<500'], // 95% of requests must complete below 500ms
     http_req_failed: ['rate<0.05'],   // Error rate must be less than 5%
   },
 };
@@ -29,7 +29,7 @@ export default function () {
   
   check(recRes, {
     'recommendations status is 200': (r) => r.status === 200,
-    'recommendations response time < 1s': (r) => r.timings.duration < 1000,
+    'recommendations response time < 500ms': (r) => r.timings.duration < 500,
     'recommendations is valid JSON': (r) => {
       try {
         JSON.parse(r.body);

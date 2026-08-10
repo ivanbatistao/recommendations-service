@@ -14,7 +14,7 @@ export const options = {
     { duration: '10s', target: 0 },   // Ramp down to 0
   ],
   thresholds: {
-    http_req_duration: ['p(95)<500'], // 95% of requests must complete below 500ms
+    http_req_duration: ['p(95)<250'], // 95% of requests must complete below 250ms
     http_req_failed: ['rate<0.01'],   // Error rate must be less than 1%
   },
 };
@@ -36,7 +36,7 @@ export default function () {
   const recRes = http.get(`${BASE_URL}/recommendations/${userId}`);
   check(recRes, {
     'recommendations status is 200': (r) => r.status === 200,
-    'recommendations response time < 500ms': (r) => r.timings.duration < 500,
+    'recommendations response time < 250ms': (r) => r.timings.duration < 250,
     'recommendations has content': (r) => r.body.length > 0,
   });
 
@@ -60,7 +60,7 @@ export default function () {
   });
   check(eventRes, {
     'event processing status is 200': (r) => r.status === 200,
-    'event processing response time < 300ms': (r) => r.timings.duration < 300,
+    'event processing response time < 150ms': (r) => r.timings.duration < 150,
   });
 
   sleep(1); // Pause between iterations
