@@ -59,7 +59,7 @@ export default function () {
     headers: { 'Content-Type': 'application/json' },
   });
   check(eventRes, {
-    'event processing status is 200': (r) => r.status === 200,
+    'event processing status is 202': (r) => r.status === 202,
     'event processing response time < 150ms': (r) => r.timings.duration < 150,
   });
 
