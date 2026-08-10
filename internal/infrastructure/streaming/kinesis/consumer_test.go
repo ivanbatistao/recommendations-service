@@ -1,4 +1,4 @@
-package kinesis_test
+package kinesis
 
 import (
 	"testing"

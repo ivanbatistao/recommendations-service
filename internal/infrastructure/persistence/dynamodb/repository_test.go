@@ -1,4 +1,4 @@
-package dynamodb_test
+package dynamodb
 
 import (
 	"testing"
