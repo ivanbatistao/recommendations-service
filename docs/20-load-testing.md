@@ -201,10 +201,10 @@ docker-compose logs recommendation-service
 - Revisar logs de la aplicación
 - Aumentar thresholds si el sistema está funcionando correctamente pero más lento de lo esperado
 
-### LocalStack es más lento que AWS real
-- Normal: LocalStack es más lento que AWS
+### MiniStack es más lento que AWS real
+- Normal: MiniStack es más lento que AWS
 - Considerar usar AWS real para métricas de producción
-- Usar LocalStack solo para desarrollo local
+- Usar MiniStack solo para desarrollo local
 
 ## Próximos Pasos
 

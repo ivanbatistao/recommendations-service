@@ -204,8 +204,8 @@ func NewLocalKinesisClient(ctx context.Context, endpoint string) (*kinesis.Clien
 
 **Features:**
 - Override endpoint with `BaseEndpoint`
-- Points to local: `http://localhost:4566` (LocalStack)
-- **Usage**: Development with LocalStack
+- Points to local: `http://localhost:4566` (MiniStack)
+- **Usage**: Development with MiniStack
 
 ### JSON Serialization
 
@@ -246,7 +246,7 @@ Kinesis tests are in `Skip` because:
 
 1. **SDK doesn't use interfaces**: Kinesis client is a concrete struct
 2. **Difficult mocking**: Cannot easily mock without wrappers
-3. **Integration tests**: Require Kinesis Local or LocalStack
+3. **Integration tests**: Require Kinesis Local or MiniStack
 
 #### Test Plan
 

@@ -32,7 +32,7 @@ recommendation-service/
 │
 ├── configs/                    # Configuration management
 ├── deploy/                     # Deployment configurations
-├── scripts/                    # Utility scripts (init-localstack.sh, test-localstack.sh, run-load-tests.sh)
+├── scripts/                    # Utility scripts (init-ministack.sh, test-ministack.sh, run-load-tests.sh)
 ├── loadtests/                  # k6 load testing scripts
 ├── benchmarks/                 # Performance benchmarks
 ├── docs/                       # Project documentation
@@ -73,8 +73,8 @@ Configuration management and environment variables
 
 ### scripts/
 Utility scripts for development and testing:
-- `init-localstack.sh`: Initialize LocalStack resources
-- `test-localstack.sh`: Test LocalStack connectivity
+- `init-ministack.sh`: Initialize MiniStack resources
+- `test-ministack.sh`: Test MiniStack connectivity
 - `run-load-tests.sh`: Execute k6 load tests
 
 ### loadtests/
@@ -92,7 +92,7 @@ Project documentation and architectural decisions:
 - `15-kinesis-decisions.md`: Kinesis streaming decisions
 - `16-worker-pool-decisions.md`: Worker pool concurrency decisions
 - `17-lambda-decisions.md`: AWS Lambda integration decisions
-- `18-ministack-setup.md`: LocalStack development setup
+- `18-ministack-setup.md`: MiniStack development setup
 - `19-load-testing.md`: Load testing with k6 guide
 - `20-project-summary.md`: Complete project summary
 - `REFACTORING_TODO.md`: Pending refactoring improvements

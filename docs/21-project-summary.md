@@ -14,7 +14,7 @@ Sistema de recomendaciones en tiempo real para ecommerce construido con Go, impl
 | Event Streaming | AWS Kinesis | Procesamiento de eventos en tiempo real |
 | Database | AWS DynamoDB | Almacenamiento NoSQL escalable |
 | Compute | AWS Lambda | Serverless compute |
-| Local Development | LocalStack | Simulación AWS local |
+| Local Development | MiniStack | Simulación AWS local |
 | Load Testing | k6 | Pruebas de carga y métricas de performance |
 | Concurrency | Goroutines + Channels | Worker pool para procesamiento paralelo |
 
@@ -124,8 +124,8 @@ Client → API Gateway → Lambda → Gin → Application → Domain → DynamoD
 
 **Trade-off:** Mayor indirección vs inicialización directa en main.go.
 
-### 5. LocalStack para Desarrollo Local
-**Decisión:** Usar LocalStack para simular DynamoDB y Kinesis localmente.
+### 5. MiniStack para Desarrollo Local
+**Decisión:** Usar MiniStack para simular DynamoDB y Kinesis localmente.
 
 **Razón:**
 - Desarrollo sin cuenta AWS
@@ -133,7 +133,7 @@ Client → API Gateway → Lambda → Gin → Application → Domain → DynamoD
 - Misma API que AWS real
 - Costo cero para desarrollo
 
-**Trade-off:** LocalStack no es 100% compatible con AWS real.
+**Trade-off:** MiniStack no es 100% compatible con AWS real.
 
 ## Métricas de Performance
 
@@ -164,7 +164,7 @@ Client → API Gateway → Lambda → Gin → Application → Domain → DynamoD
 
 **✅ Development Tools (3 módulos):**
 9. Event Generator - Generador de tráfico realista
-10. MiniStack - LocalStack para desarrollo local
+10. MiniStack - MiniStack para desarrollo local
 11. Load Testing - k6 scripts para métricas
 
 ### Estructura del Proyecto
@@ -183,7 +183,7 @@ recommendations-service/
 ├── docs/               # Architecture decisions and documentation
 ├── loadtests/          # k6 load testing scripts
 ├── scripts/            # Utility scripts
-└── docker-compose.yml  # LocalStack setup
+└── docker-compose.yml  # MiniStack setup
 ```
 
 ## Casos de Uso
@@ -231,8 +231,8 @@ Ecommerce → POST /events
 
 ### Local Development
 ```bash
-docker-compose up localstack
-./scripts/init-localstack.sh
+docker-compose up ministack
+./scripts/init-ministack.sh
 docker-compose up recommendation-service
 ```
 
@@ -251,6 +251,7 @@ docker build -f Dockerfile.lambda -t recommendations-lambda .
 2. **Implementar Kinesis Integration** en Event Generator (actualmente solo HTTP)
 3. **Observability** - CloudWatch metrics, structured logging, tracing
 4. **Resilience** - Retry logic, circuit breaker, backoff strategies
+5. **Achieve < 250ms latency target** en load tests con k6
 
 ### Roadmap Original (13 módulos pendientes)
 - Testing avanzado
@@ -285,15 +286,15 @@ docker build -f Dockerfile.lambda -t recommendations-lambda .
 - `docs/15-kinesis-decisions.md` - Decisiones de Kinesis
 - `docs/16-worker-pool-decisions.md` - Decisiones de Worker Pool
 - `docs/17-lambda-decisions.md` - Decisiones de Lambda
-- `docs/18-ministack-setup.md` - Configuración de LocalStack
+- `docs/18-ministack-setup.md` - Configuración de MiniStack
 - `docs/19-load-testing.md` - Guía de load testing
 - `docs/REFACTORING_TODO.md` - Refactorizaciones pendientes
 - `docs/PROJECT_STATUS.md` - Estado del proyecto vs roadmap
 
-### Tecnologías
+### Technologies
 - [Gin Web Framework](https://gin-gonic.com/)
 - [AWS SDK for Go v2](https://aws.github.io/aws-sdk-go-v2/)
-- [LocalStack](https://localstack.cloud/)
+- [MiniStack](https://ministack.org/)
 - [k6 Load Testing](https://k6.io/)
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
 
@@ -307,7 +308,7 @@ Este proyecto implementa un sistema de recomendaciones en tiempo real utilizando
 ✅ **Concurrent** - Worker pool para performance
 ✅ **Testable** - Unit tests, integration tests, load tests
 ✅ **Observable** - Structured logging, ready for metrics
-✅ **Deployable** - LocalStack para dev, AWS para prod
+✅ **Deployable** - MiniStack para dev, AWS para prod
 ✅ **Maintainable** - Composition root, documentation, refactor plan
 
 El sistema está listo para interviews técnicas con arquitectura defendible, código funcional, métricas de performance obtenibles, y documentación completa.

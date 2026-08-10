@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project uses **MiniStack** to simulate AWS services locally, enabling development and testing without a real AWS account. MiniStack is a free, MIT-licensed alternative to LocalStack that provides 60+ AWS services without requiring a license key.
+This project uses **MiniStack** to simulate AWS services locally, enabling development and testing without a real AWS account. MiniStack is a free, MIT-licensed alternative to MiniStack that provides 60+ AWS services without requiring a license key.
 
 ## Simulated Services
 
@@ -158,14 +158,14 @@ export AWS_SECRET_ACCESS_KEY=test
 export AWS_DEFAULT_REGION=us-east-1
 ```
 
-## MiniStack vs LocalStack
+## MiniStack vs MiniStack
 
-MiniStack is a free alternative to LocalStack with the following advantages:
+MiniStack is a free alternative to MiniStack with the following advantages:
 
 - **Free forever**: No license key required
 - **No telemetry**: No data collection
 - **Drop-in replacement**: Compatible with existing AWS tools
-- **60+ services**: More AWS services than LocalStack free tier
+- **60+ services**: More AWS services than MiniStack free tier
 - **Real databases**: RDS runs actual Postgres/MySQL containers
 - **Multi-account & multi-region**: Supports multiple AWS accounts and regions
 

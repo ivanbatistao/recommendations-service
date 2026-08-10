@@ -93,4 +93,4 @@ Batch Events → Generate Recommendations Command → Domain Service → Recomme
 ### External Services
 - **DynamoDB**: NoSQL database for recommendations
 - **Kinesis**: Event streaming platform
-- **LocalStack**: Local AWS simulation for development
+- **MiniStack**: Local AWS simulation for development

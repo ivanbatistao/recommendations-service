@@ -25,7 +25,7 @@
 
 | Roadmap Module | Key Tasks | Status |
 |----------------|----------|--------|
-| Module 9 - MiniStack | Configure LocalStack, DynamoDB Local, Kinesis Local | **❌ Not implemented** |
+| Module 9 - MiniStack | Configure MiniStack, DynamoDB Local, Kinesis Local | **❌ Not implemented** |
 | Module 10 - Testing | Integration tests, event generation | **❌ Not implemented** |
 | Module 11 - Performance | Benchmarking, pprof, optimization | **❌ Not implemented** |
 | Module 12 - Load Testing | k6 scripts, load tests | **❌ Not implemented** |
@@ -85,7 +85,7 @@ Continue with the remaining 13 modules in order
 ## 🚀 Recommended Next Steps
 
 1. **Event Generator** - Create cmd/event-generator
-2. **Basic MiniStack** - LocalStack for local DynamoDB/Kinesis
+2. **Basic MiniStack** - MiniStack for local DynamoDB/Kinesis
 3. **Load Testing** - k6 scripts to measure performance
 4. **Final Documentation** - Architecture and decisions summary
 

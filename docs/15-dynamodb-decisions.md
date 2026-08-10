@@ -220,7 +220,7 @@ DynamoDB tests are in `Skip` because:
 
 1. **SDK doesn't use interfaces**: DynamoDB client is a concrete struct, not an interface
 2. **Difficult mocking**: Cannot easily mock without wrappers
-3. **Integration tests**: Require DynamoDB Local or LocalStack
+3. **Integration tests**: Require DynamoDB Local or MiniStack
 
 #### Test Plan
 
