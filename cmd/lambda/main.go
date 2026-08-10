@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -12,7 +13,7 @@ import (
 	"github.com/ivanbatistao/recommendations-service/internal/application/dto"
 	"github.com/ivanbatistao/recommendations-service/internal/application/queries"
 	"github.com/ivanbatistao/recommendations-service/internal/domain/event"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/composition"
+	"github.com/ivanbatistao/recommendations-service/internal/app/composition"
 )
 
 type LambdaHandler struct {
@@ -30,6 +31,42 @@ func NewLambdaHandler() *LambdaHandler {
 	return &LambdaHandler{
 		Application: app,
 	}
+}
+
+// HTTP Response Helpers
+func jsonResponse(statusCode int, body interface{}) (events.APIGatewayProxyResponse, error) {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return jsonError(500, "failed to marshal response")
+	}
+	return events.APIGatewayProxyResponse{
+		StatusCode: statusCode,
+		Headers:    map[string]string{"Content-Type": "application/json"},
+		Body:       string(data),
+	}, nil
+}
+
+func jsonError(statusCode int, message string) (events.APIGatewayProxyResponse, error) {
+	return events.APIGatewayProxyResponse{
+		StatusCode: statusCode,
+		Headers:    map[string]string{"Content-Type": "application/json"},
+		Body:       `{"error":"` + message + `"}`,
+	}, nil
+}
+
+// Request Validation Helpers
+func validateUserID(userID string) error {
+	if userID == "" {
+		return errors.New("user_id is required")
+	}
+	return nil
+}
+
+func validateRequestBody(body string) error {
+	if body == "" {
+		return errors.New("request body is required")
+	}
+	return nil
 }
 
 func (h *LambdaHandler) HandleRequest(
@@ -60,48 +97,24 @@ func (h *LambdaHandler) HandleRequest(
 		}
 
 	default:
-		return events.APIGatewayProxyResponse{
-			StatusCode: 404,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"not found"}`,
-		}, nil
+		return jsonError(404, "not found")
 	}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: 404,
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: `{"error":"not found"}`,
-	}, nil
+	return jsonError(404, "not found")
 }
 
 func (h *LambdaHandler) handleHealth(
 	ctx context.Context,
 ) (events.APIGatewayProxyResponse, error) {
-	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: `{"status":"ok"}`,
-	}, nil
+	return jsonResponse(200, map[string]string{"status": "ok"})
 }
 
 func (h *LambdaHandler) handleGetRecommendations(
 	ctx context.Context,
 	userID string,
 ) (events.APIGatewayProxyResponse, error) {
-	if userID == "" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 400,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"user_id is required"}`,
-		}, nil
+	if err := validateUserID(userID); err != nil {
+		return jsonError(400, err.Error())
 	}
 
 	result, err := h.GetRecommendationsHandler.Execute(
@@ -116,53 +129,31 @@ func (h *LambdaHandler) handleGetRecommendations(
 			"failed to get recommendations",
 			slog.String("error", err.Error()),
 		)
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"internal server error"}`,
-		}, nil
+		return jsonError(500, "internal server error")
 	}
 
 	dtos := dto.FromDomainSlice(result)
-	body, _ := json.Marshal(map[string]interface{}{
+	return jsonResponse(200, map[string]interface{}{
 		"recommendations": dtos,
 	})
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: string(body),
-	}, nil
 }
 
 func (h *LambdaHandler) handleProcessEvent(
 	ctx context.Context,
 	body string,
 ) (events.APIGatewayProxyResponse, error) {
+	if err := validateRequestBody(body); err != nil {
+		return jsonError(400, err.Error())
+	}
+
 	var eventDTO dto.EventDTO
 	if err := json.Unmarshal([]byte(body), &eventDTO); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 400,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"invalid request body"}`,
-		}, nil
+		return jsonError(400, "invalid request body")
 	}
 
 	event, err := dto.ToEventDomain(eventDTO)
 	if err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 400,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"invalid event data"}`,
-		}, nil
+		return jsonError(400, "invalid event data")
 	}
 
 	err = h.ProcessEventHandler.Execute(
@@ -177,28 +168,20 @@ func (h *LambdaHandler) handleProcessEvent(
 			"failed to process event",
 			slog.String("error", err.Error()),
 		)
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"internal server error"}`,
-		}, nil
+		return jsonError(500, "internal server error")
 	}
 
-	return events.APIGatewayProxyResponse{
-		StatusCode: 202,
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: `{"status":"event processed"}`,
-	}, nil
+	return jsonResponse(202, map[string]string{"status": "event processed"})
 }
 
 func (h *LambdaHandler) handleGenerateRecommendations(
 	ctx context.Context,
 	body string,
 ) (events.APIGatewayProxyResponse, error) {
+	if err := validateRequestBody(body); err != nil {
+		return jsonError(400, err.Error())
+	}
+
 	var request struct {
 		UserID string          `json:"user_id"`
 		Events []dto.EventDTO  `json:"events"`
@@ -206,26 +189,14 @@ func (h *LambdaHandler) handleGenerateRecommendations(
 	}
 
 	if err := json.Unmarshal([]byte(body), &request); err != nil {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 400,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"invalid request body"}`,
-		}, nil
+		return jsonError(400, "invalid request body")
 	}
 
 	eventList := make([]event.Event, len(request.Events))
 	for i, eventDTO := range request.Events {
 		e, err := dto.ToEventDomain(eventDTO)
 		if err != nil {
-			return events.APIGatewayProxyResponse{
-				StatusCode: 400,
-				Headers: map[string]string{
-					"Content-Type": "application/json",
-				},
-				Body: `{"error":"invalid event data"}`,
-			}, nil
+			return jsonError(400, "invalid event data")
 		}
 		eventList[i] = e
 	}
@@ -244,27 +215,13 @@ func (h *LambdaHandler) handleGenerateRecommendations(
 			"failed to generate recommendations",
 			slog.String("error", err.Error()),
 		)
-		return events.APIGatewayProxyResponse{
-			StatusCode: 500,
-			Headers: map[string]string{
-				"Content-Type": "application/json",
-			},
-			Body: `{"error":"internal server error"}`,
-		}, nil
+		return jsonError(500, "internal server error")
 	}
 
 	dtos := dto.FromDomainSlice(result)
-	responseBody, _ := json.Marshal(map[string]interface{}{
+	return jsonResponse(200, map[string]interface{}{
 		"recommendations": dtos,
 	})
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: 200,
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: string(responseBody),
-	}, nil
 }
 
 func main() {

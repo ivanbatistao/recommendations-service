@@ -10,7 +10,7 @@ import (
 
 	"github.com/ivanbatistao/recommendations-service/configs"
 	httpgin "github.com/ivanbatistao/recommendations-service/internal/infrastructure/http/gin"
-	"github.com/ivanbatistao/recommendations-service/internal/infrastructure/composition"
+	"github.com/ivanbatistao/recommendations-service/internal/app/composition"
 )
 
 func main() {
